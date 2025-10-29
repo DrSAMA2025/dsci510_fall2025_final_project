@@ -22,7 +22,7 @@ Collect and analyze historical search interest data to track public awareness of
   Output Format: CSV time-series data
 
 >Code Features
-# Key configuration
+  Key configuration:
 keywords = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
 timeframe = '2023-01-01 2025-10-28'
 
