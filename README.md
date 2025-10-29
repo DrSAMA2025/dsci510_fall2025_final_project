@@ -12,23 +12,22 @@ Collect and analyze historical search interest data to track public awareness of
 
 **Data Collection:
 >Keywords Tracked
-  Disease Terminology: MASLD, NAFLD
-  Pharmaceuticals: Rezdiffra, Wegovy, Ozempic
+- Disease Terminology: MASLD, NAFLD
+- Pharmaceuticals: Rezdiffra, Wegovy, Ozempic
 
 >Technical Implementation
-  Time Period: January 1, 2023 - October 28, 2025
-  Geographic Scope: Global search data
-  Data Points: ~5,000 weekly interest scores
-  Output Format: CSV time-series data
+- Time Period: January 1, 2023 - October 28, 2025
+- Geographic Scope: Global search data
+- Data Points: ~5,000 weekly interest scores
+- Output Format: CSV time-series data
 
 >Code Features
-  Key configuration:
+- Key configuration:
 keywords = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
 timeframe = '2023-01-01 2025-10-28'
-
-  Custom HTTP headers to avoid rate limiting
-  Automated handling of partial data markers
-  Error handling for Google Trends API limitations
+- Custom HTTP headers to avoid rate limiting
+- Automated handling of partial data markers
+- Error handling for Google Trends API limitations
 
 **How to Reproduce:
 >Prerequisites:
@@ -55,6 +54,6 @@ This task establishes the public awareness baseline that will be correlated with
 - Academic publication trends (Task 3)
 
 **Files
-google_trends.py - Data collection script
-google_trends_initial_data.csv - Raw search interest data
-tests.py - Code tesing
+- google_trends.py - Data collection script
+- google_trends_initial_data.csv - Raw search interest data
+- tests.py - Code tesing
