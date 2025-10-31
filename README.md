@@ -15,8 +15,7 @@ Collect and analyze historical search interest data to track public awareness of
 
 ### Output
 - `google_trends_initial_data.csv` - Weekly search interest data
-
-## Google Trends Analysis - COMPLETED
+- **Google Trends Analysis - COMPLETED**
 
 ### Status Update
 - **Data Collection:** Successfully collected 142 weeks of search data (2023-2025)
@@ -42,6 +41,41 @@ Collect and analyze historical search interest data to track public awareness of
 
 ## 📚 Task 3: PubMed Publications Analysis - PENDING
 *Academic publication trends analysis pending*
+
+
+
+## 📈 Task 5: Stock Market Data Analysis 
+
+### Objective
+Analyze stock market reactions to FDA drug approvals by tracking pharmaceutical companies (Novo Nordisk - GLP-1 agonists, Madrigal Pharmaceuticals - Resmetirom) to measure industry and investor responses to regulatory milestones.
+
+### Implementation
+- **Script**: `stock_data.py`
+- **Timeframe**: January 3, 2023 - October 27, 2025 (707 trading days)
+- **Companies**: Novo Nordisk (NVO), Madrigal Pharmaceuticals (MDGL)
+- **FDA Dates**: Resmetirom (March 14, 2024), Semaglutide (August 15, 2025)
+
+### Output
+- `stock_prices.csv` - Daily stock prices, volumes, and market data
+- **Stock Data Analysis - COMPLETED**
+
+### Status Update
+- **Data Collection**: Successfully downloaded 707 trading days of historical data
+- **Validation**: Comprehensive data integrity tests passed
+- **Coverage**: Both FDA approval dates captured in dataset
+- **Key Files**: `stock_data.py`, `stock_prices.csv`, integrated test suite
+
+### Key Findings
+- Complete historical price data for both companies across study period
+- FDA approval dates successfully captured in trading data
+- Realistic price ranges verified: NVO ($45.38-$144.04), MDGL ($120.40-$458.66)
+- Data quality confirmed with comprehensive validation tests
+
+### Deliverables
+- `stock_data.py` - Automated data collection and validation script
+- `data/stock_prices.csv` - Complete historical stock data
+- Integrated testing in `tests.py` - Data quality assurance
+
 
 ## 🛠️ Setup Instructions
 ```bash
