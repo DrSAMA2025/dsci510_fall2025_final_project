@@ -1,5 +1,4 @@
 # Tests for Google Trends Data (Data Source #1)
-
 import pandas as pd
 import os
 
