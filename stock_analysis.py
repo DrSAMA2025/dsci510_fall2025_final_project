@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 
 def analyze_stock_impact():
@@ -20,25 +21,74 @@ def analyze_stock_impact():
         'Semaglutide (Novo Nordisk)': '2025-08-15'
     }
 
-    # 1. BASIC PRICE TRENDS
-    plt.figure(figsize=(14, 10))
+    # Set professional style
+    plt.style.use('seaborn-v0_8')
+    sns.set_palette("husl")
 
-    # Plot 1: Stock prices with FDA events
-    plt.subplot(2, 2, 1)
-    plt.plot(df.index, df['Close']['NVO'], label='Novo Nordisk (NVO)', linewidth=2, color='blue')
-    plt.plot(df.index, df['Close']['MDGL'], label='Madrigal (MDGL)', linewidth=2, color='red')
+    # 1. STOCK PRICE TREND CHART
+    print("\nCreating presentation-ready stock price chart...")
+    plt.figure(figsize=(14, 8))
 
-    for event, date in fda_dates.items():
-        plt.axvline(pd.to_datetime(date), color='black', linestyle='--', alpha=0.7)
-        plt.text(pd.to_datetime(date), plt.ylim()[1] * 0.9, event.split(' ')[0],
-                 rotation=90, verticalalignment='top')
+    # Normalize prices to percentage change for better comparison
+    nvo_normalized = (df['Close']['NVO'] / df['Close']['NVO'].iloc[0] - 1) * 100
+    mdgl_normalized = (df['Close']['MDGL'] / df['Close']['MDGL'].iloc[0] - 1) * 100
 
-    plt.title('Stock Prices: FDA Approval Impact')
-    plt.ylabel('Price (USD)')
-    plt.legend()
+    plt.plot(df.index, nvo_normalized, label='Novo Nordisk (NVO)', linewidth=3, color='#2E86AB')
+    plt.plot(df.index, mdgl_normalized, label='Madrigal (MDGL)', linewidth=3, color='#A23B72')
+
+    # Add FDA approval events
+    colors = ['#F18F01', '#C73E1D']
+    for i, (event, date) in enumerate(fda_dates.items()):
+        event_date = pd.to_datetime(date)
+        plt.axvline(event_date, color=colors[i], linestyle='--', linewidth=2, alpha=0.8, label=f'{event}')
+        plt.text(event_date, plt.ylim()[1] * 0.85, event.split(' ')[0],
+                 rotation=90, verticalalignment='top', fontweight='bold', fontsize=10)
+
+    plt.title(
+        'Stock Performance: MASLD Pharmaceutical Companies (2023-2025)\nNormalized Price Trends with FDA Approval Events',
+        fontsize=14, fontweight='bold', pad=20)
+    plt.ylabel('Price Change (%) from Jan 2023', fontsize=12)
+    plt.xlabel('Date', fontsize=12)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('analysis/stock_price_trend_presentation.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
-    # 2. PRICE CHANGES AROUND FDA DATES
+    # 2. CORRELATION MATRIX
+    print("Creating correlation matrix...")
+
+    # Load Google Trends data
+    trends_df = pd.read_csv('data/google_trends_initial_data.csv')
+    trends_df['date'] = pd.to_datetime(trends_df['date'])
+    trends_df.set_index('date', inplace=True)
+
+    # Merge datasets (monthly averages)
+    stock_monthly = df['Close'].resample('ME').mean()
+    trends_monthly = trends_df.resample('ME').mean()
+
+    merged_data = pd.concat([stock_monthly, trends_monthly], axis=1)
+
+    # Select key variables for correlation
+    correlation_vars = ['NVO', 'MDGL', 'MASLD', 'NAFLD', 'Wegovy', 'Ozempic']
+    correlation_data = merged_data[correlation_vars]
+
+    # Create correlation matrix
+    correlation_matrix = correlation_data.corr()
+
+    plt.figure(figsize=(10, 8))
+    mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+    heatmap = sns.heatmap(correlation_matrix, mask=mask, annot=True, cmap='RdBu_r',
+                          center=0, square=True, fmt='.3f', cbar_kws={"shrink": .8},
+                          annot_kws={'size': 10, 'weight': 'bold'})
+
+    plt.title('Correlation Matrix: Stock Prices vs MASLD Search Interest',
+              fontsize=14, fontweight='bold', pad=20)
+    plt.tight_layout()
+    plt.savefig('analysis/correlation_matrix_presentation.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # 3. FDA APPROVAL IMPACT ANALYSIS
     print("\n--- FDA APPROVAL IMPACT ANALYSIS ---")
 
     results = []
@@ -68,47 +118,30 @@ def analyze_stock_impact():
                 'Percent_Change': change_pct
             })
 
-    # 3. CORRELATION WITH GOOGLE TRENDS
+    # 4. CORRELATION ANALYSIS
     print("\n--- CORRELATION ANALYSIS ---")
 
-    # Load Google Trends data for comparison
-    trends_df = pd.read_csv('data/google_trends_initial_data.csv')
-    trends_df['date'] = pd.to_datetime(trends_df['date'])
-    trends_df.set_index('date', inplace=True)
-
-    # Merge datasets (monthly averages for comparison)
-    stock_monthly = df['Close'].resample('M').mean()
-    trends_monthly = trends_df.resample('M').mean()
-
-    merged_data = pd.concat([stock_monthly, trends_monthly], axis=1)
-
-    # Calculate correlations
-    correlation_nvo_masld = merged_data['NVO'].corr(merged_data['MASLD'])
-    correlation_mdgl_masld = merged_data['MDGL'].corr(merged_data['MASLD'])
+    correlation_nvo_masld = correlation_matrix.loc['NVO', 'MASLD']
+    correlation_mdgl_masld = correlation_matrix.loc['MDGL', 'MASLD']
 
     print(f"Novo Nordisk vs MASLD searches: r = {correlation_nvo_masld:.3f}")
     print(f"Madrigal vs MASLD searches: r = {correlation_mdgl_masld:.3f}")
 
-    # Save correlation results
+    # Save results
     correlation_results = pd.DataFrame({
         'Correlation_Type': ['NVO_vs_MASLD', 'MDGL_vs_MASLD'],
         'Correlation_Value': [correlation_nvo_masld, correlation_mdgl_masld]
     })
 
-    plt.tight_layout()
-    plt.savefig('analysis/stock_analysis.png', dpi=300, bbox_inches='tight')
-
-    # Save all results to analysis folder
     results_df = pd.DataFrame(results)
     results_df.to_csv('analysis/stock_analysis_results.csv', index=False)
     correlation_results.to_csv('analysis/stock_correlation_results.csv', index=False)
 
-    print(f"\nAnalysis complete! Files saved to analysis/ folder:")
-    print(f"  • analysis/stock_analysis.png")
-    print(f"  • analysis/stock_analysis_results.csv")
-    print(f"  • analysis/stock_correlation_results.csv")
-
-    # REMOVED plt.show() - this was blocking the file saves!
+    print(f"\nAnalysis complete! Presentation-ready files saved:")
+    print(f"   • analysis/stock_price_trend_presentation.png")
+    print(f"   • analysis/correlation_matrix_presentation.png")
+    print(f"   • analysis/stock_analysis_results.csv")
+    print(f"   • analysis/stock_correlation_results.csv")
 
 
 if __name__ == "__main__":
