@@ -104,13 +104,13 @@ def test_data_integrity(filename='data/google_trends_initial_data.csv'):
 
 
 def test_analysis_outputs():
-    """Test if analysis files were generated."""
     print("\n--- ANALYSIS OUTPUT TESTS ---")
 
     expected_files = [
         'google_trends_analysis.py',
-        'google_trends_main_analysis.png',
-        'google_trends_correlation_heatmap.png'
+        'analysis/google_trends_main_analysis.png',
+        'analysis/google_trends_correlation_heatmap.png',
+        'analysis/google_trends_statistical_summary.csv'
     ]
 
     for file in expected_files:

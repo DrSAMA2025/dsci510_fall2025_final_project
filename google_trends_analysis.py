@@ -29,7 +29,7 @@ FDA_EVENTS = {
 }
 
 # 1. MAIN TRENDS VISUALIZATION
-print("\n📈 Creating main trends visualization...")
+print("\nCreating main trends visualization...")
 fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 fig.suptitle('MASLD Awareness: Google Trends Analysis (2023-2025)', fontsize=16, fontweight='bold')
 
@@ -160,5 +160,5 @@ print(f"   • Statistical summary available in variable 'summary_stats'")
 plt.show()
 
 # Save summary statistics to CSV
-summary_stats.to_csv('google_trends_statistical_summary.csv')
-print(f"   • google_trends_statistical_summary.csv")
+summary_stats.to_csv('analysis/google_trends_statistical_summary.csv')
+print(f"   • analysis/google_trends_statistical_summary.csv")
