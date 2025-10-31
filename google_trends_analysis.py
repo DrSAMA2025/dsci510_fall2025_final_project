@@ -1,5 +1,4 @@
-# trends_analysis.py
-# Comprehensive Google Trends Analysis for MASLD Awareness Tracker
+# Google Trends Analysis for MASLD Awareness Tracker
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,11 +13,11 @@ sns.set_palette("husl")
 print("=== MASLD AWARENESS TRACKER - GOOGLE TRENDS ANALYSIS ===")
 
 # Read and prepare the data
-df = pd.read_csv('google_trends_initial_data.csv')
+df = pd.read_csv('data/google_trends_initial_data.csv')
 df['date'] = pd.to_datetime(df['date'])
 df.set_index('date', inplace=True)
 
-print(f"\n📊 Data Overview:")
+print(f"\nData Overview:")
 print(f"Time period: {df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}")
 print(f"Total data points: {len(df)}")
 print(f"Keywords: {', '.join(df.columns)}")
@@ -79,7 +78,7 @@ plt.tight_layout()
 plt.savefig('google_trends_main_analysis.png', dpi=300, bbox_inches='tight')
 
 # 2. CORRELATION ANALYSIS
-print("🔍 Performing correlation analysis...")
+print("Performing correlation analysis...")
 correlation_matrix = df[['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']].corr()
 
 plt.figure(figsize=(10, 8))
@@ -91,7 +90,7 @@ plt.tight_layout()
 plt.savefig('google_trends_correlation_heatmap.png', dpi=300, bbox_inches='tight')
 
 # 3. EVENT STUDY ANALYSIS
-print("📅 Conducting event study analysis...")
+print("Conducting event study analysis...")
 event_results = {}
 
 for event_name, event_date in FDA_EVENTS.items():
@@ -115,36 +114,36 @@ for event_name, event_date in FDA_EVENTS.items():
             }
 
 # 4. STATISTICAL SUMMARY
-print("📊 Generating statistical summary...")
+print("Generating statistical summary...")
 summary_stats = df[['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']].describe()
 
 # 5. OUTPUT RESULTS
 print("\n" + "=" * 60)
-print("🎯 KEY FINDINGS SUMMARY")
+print("KEY FINDINGS SUMMARY")
 print("=" * 60)
 
-print(f"\n📈 Terminology Transition:")
+print(f"\nTerminology Transition:")
 masld_first_appearance = df[df['MASLD'] > 0].index[0]
 print(f"• MASLD first appeared: {masld_first_appearance.strftime('%Y-%m-%d')}")
 print(f"• Current MASLD/NAFLD ratio: {df['MASLD_NAFLD_Ratio'].iloc[-1]:.2f}")
 
-print(f"\n💊 Pharmaceutical Trends:")
+print(f"\nPharmaceutical Trends:")
 print(f"• Wegovy peak interest: {df['Wegovy'].max()} (on {df['Wegovy'].idxmax().strftime('%Y-%m-%d')})")
 print(f"• Ozempic peak interest: {df['Ozempic'].max()} (on {df['Ozempic'].idxmax().strftime('%Y-%m-%d')})")
 
-print(f"\n🚀 August 2025 Spike Analysis:")
+print(f"\nAugust 2025 Spike Analysis:")
 august_spike = df['2025-08-01':'2025-08-31']
 max_masld = august_spike['MASLD'].max()
 max_nafld = august_spike['NAFLD'].max()
 print(f"• MASLD peak: {max_masld} ({max_masld / df['MASLD'].mean():.1f}x average)")
 print(f"• NAFLD peak: {max_nafld} ({max_nafld / df['NAFLD'].mean():.1f}x average)")
 
-print(f"\n🔗 Key Correlations:")
+print(f"\nKey Correlations:")
 print(f"• MASLD vs NAFLD: {correlation_matrix.loc['MASLD', 'NAFLD']:.3f}")
 print(f"• MASLD vs Wegovy: {correlation_matrix.loc['MASLD', 'Wegovy']:.3f}")
 print(f"• MASLD vs Ozempic: {correlation_matrix.loc['MASLD', 'Ozempic']:.3f}")
 
-print(f"\n📋 Event Study Results:")
+print(f"\nEvent Study Results:")
 for event, results in event_results.items():
     print(f"\n{event}:")
     for drug, stats in results.items():
@@ -152,7 +151,7 @@ for event, results in event_results.items():
             direction = "↑" if stats['percent_change'] > 0 else "↓"
             print(f"  • {drug}: {direction} {abs(stats['percent_change']):.1f}% change")
 
-print(f"\n💾 Analysis complete! Files saved:")
+print(f"\nAnalysis complete! Files saved:")
 print(f"   • google_trends_main_analysis.png")
 print(f"   • google_trends_correlation_heatmap.png")
 print(f"   • Statistical summary available in variable 'summary_stats'")

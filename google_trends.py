@@ -41,7 +41,7 @@ for i in range(0, len(all_keywords), 2):  # 2 keywords at a time
 
             all_data = pd.concat([all_data, df], axis=1)
             success = True
-            print("✅ Success.")
+            print("Success.")
 
         except TooManyRequestsError:
             wait = random.randint(60, 120)  # wait 1–2 minutes
