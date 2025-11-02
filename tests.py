@@ -2,7 +2,6 @@
 import pandas as pd
 import os
 
-
 def test_data_integrity(filename='data/google_trends_initial_data.csv'):
 
     print("\n" + "=" * 50)
@@ -107,9 +106,9 @@ def test_analysis_outputs():
 
     expected_files = [
         'google_trends_analysis.py',
-        'analysis/google_trends_main_analysis.png',
-        'analysis/google_trends_correlation_heatmap.png',
-        'analysis/google_trends_statistical_summary.csv'
+        'analysis/google_trends/google_trends_main_analysis.png',
+        'analysis/google_trends/google_trends_correlation_heatmap.png',
+        'analysis/google_trends/google_trends_statistical_summary.csv'
     ]
 
     for file in expected_files:
@@ -141,7 +140,6 @@ import pandas as pd
 import os
 import sys
 from datetime import datetime
-
 
 def test_reddit_data_quality():
     """Test the quality and structure of Reddit data"""
@@ -223,21 +221,25 @@ def test_sentiment_analysis_output():
     """Test the sentiment analysis outputs"""
     print("\n=== SENTIMENT ANALYSIS OUTPUT TESTS ===")
 
-    # Test 1: Check if sentiment analysis files exist
+    # Test 1: Check if sentiment analysis files exist in reddit subfolder
     try:
-        analysis_files = os.listdir('analysis')
-        sentiment_files = [f for f in analysis_files if 'sentiment' in f.lower()]
-        assert len(sentiment_files) >= 3, f"Not enough sentiment analysis files. Found: {sentiment_files}"
-        print(f"✓ Found sentiment analysis files: {len(sentiment_files)} files")
+        if os.path.exists('analysis/reddit'):
+            reddit_files = os.listdir('analysis/reddit')
+            sentiment_files = [f for f in reddit_files if 'sentiment' in f.lower()]
+            assert len(sentiment_files) >= 3, f"Not enough sentiment analysis files. Found: {sentiment_files}"
+            print(f"✓ Found sentiment analysis files: {len(sentiment_files)} files")
+        else:
+            print("✗ Analysis/reddit folder not found")
+            return False
     except Exception as e:
         print(f"✗ Sentiment file test FAILED: {e}")
         return False
 
     # Test 2: Check daily sentiment file
     try:
-        daily_files = [f for f in analysis_files if 'daily' in f.lower() and 'sentiment' in f.lower()]
+        daily_files = [f for f in reddit_files if 'daily' in f.lower() and 'sentiment' in f.lower()]
         if daily_files:
-            daily_df = pd.read_csv(f'analysis/{daily_files[0]}')
+            daily_df = pd.read_csv(f'analysis/reddit/{daily_files[0]}')
             assert 'avg_sentiment' in daily_df.columns, "Missing avg_sentiment column"
             assert 'date' in daily_df.columns, "Missing date column"
             assert len(daily_df) > 0, "Daily sentiment file is empty"
@@ -248,9 +250,9 @@ def test_sentiment_analysis_output():
 
     # Test 3: Check sentiment range
     try:
-        full_files = [f for f in analysis_files if 'with_sentiment' in f.lower()]
+        full_files = [f for f in reddit_files if 'with_sentiment' in f.lower()]
         if full_files:
-            full_df = pd.read_csv(f'analysis/{full_files[0]}')
+            full_df = pd.read_csv(f'analysis/reddit/{full_files[0]}')
             assert 'sentiment' in full_df.columns, "Missing sentiment column in full dataset"
             sentiment_range = full_df['sentiment'].between(-1, 1).all()
             assert sentiment_range, "Sentiment scores outside valid range (-1 to 1)"
@@ -269,22 +271,26 @@ def test_visualization_outputs():
     print("\n=== VISUALIZATION OUTPUT TESTS ===")
 
     try:
-        analysis_files = os.listdir('analysis')
-        plot_files = [f for f in analysis_files if f.endswith('.png')]
-        assert len(plot_files) >= 3, f"Expected at least 3 plots, found: {len(plot_files)}"
+        if os.path.exists('analysis/reddit'):
+            reddit_files = os.listdir('analysis/reddit')
+            plot_files = [f for f in reddit_files if f.endswith('.png')]
+            assert len(plot_files) >= 3, f"Expected at least 3 plots, found: {len(plot_files)}"
 
-        expected_plots = ['trend', 'subreddit', 'distribution']
-        found_keywords = []
-        for plot_file in plot_files:
-            if any(keyword in plot_file.lower() for keyword in ['trend', 'fda']):
-                found_keywords.append('trend')
-            elif 'subreddit' in plot_file.lower():
-                found_keywords.append('subreddit')
-            elif 'distribution' in plot_file.lower():
-                found_keywords.append('distribution')
+            expected_plots = ['trend', 'subreddit', 'distribution']
+            found_keywords = []
+            for plot_file in plot_files:
+                if any(keyword in plot_file.lower() for keyword in ['trend', 'fda']):
+                    found_keywords.append('trend')
+                elif 'subreddit' in plot_file.lower():
+                    found_keywords.append('subreddit')
+                elif 'distribution' in plot_file.lower():
+                    found_keywords.append('distribution')
 
-        assert len(set(found_keywords)) >= 2, f"Missing key plot types. Found: {found_keywords}"
-        print(f"✓ Visualization files check passed: {len(plot_files)} plots generated")
+            assert len(set(found_keywords)) >= 2, f"Missing key plot types. Found: {found_keywords}"
+            print(f"✓ Visualization files check passed: {len(plot_files)} plots generated")
+        else:
+            print("✗ Analysis/reddit folder not found")
+            return False
 
     except Exception as e:
         print(f"✗ Visualization test FAILED: {e}")

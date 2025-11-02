@@ -302,7 +302,7 @@ def main():
     print("Generating outputs for BOTH presentation and manuscript...")
 
     # Create analysis folder
-    analysis_folder = 'analysis'
+    analysis_folder = 'analysis/reddit'
     if not os.path.exists(analysis_folder):
         os.makedirs(analysis_folder)
 

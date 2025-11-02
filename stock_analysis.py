@@ -1,3 +1,4 @@
+# stock_analysis.py
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,7 +53,7 @@ def analyze_stock_impact():
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig('analysis/stock_price_trend_presentation.png', dpi=300, bbox_inches='tight')
+    plt.savefig('analysis/stock/stock_price_trend_presentation.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # 2. CORRELATION MATRIX
@@ -85,7 +86,7 @@ def analyze_stock_impact():
     plt.title('Correlation Matrix: Stock Prices vs MASLD Search Interest',
               fontsize=14, fontweight='bold', pad=20)
     plt.tight_layout()
-    plt.savefig('analysis/correlation_matrix_presentation.png', dpi=300, bbox_inches='tight')
+    plt.savefig('analysis/stock/correlation_matrix_presentation.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # 3. FDA APPROVAL IMPACT ANALYSIS
@@ -134,14 +135,14 @@ def analyze_stock_impact():
     })
 
     results_df = pd.DataFrame(results)
-    results_df.to_csv('analysis/stock_analysis_results.csv', index=False)
-    correlation_results.to_csv('analysis/stock_correlation_results.csv', index=False)
+    results_df.to_csv('analysis/stock/stock_analysis_results.csv', index=False)
+    correlation_results.to_csv('analysis/stock/stock_correlation_results.csv', index=False)
 
     print(f"\nAnalysis complete! Presentation-ready files saved:")
-    print(f"   • analysis/stock_price_trend_presentation.png")
-    print(f"   • analysis/correlation_matrix_presentation.png")
-    print(f"   • analysis/stock_analysis_results.csv")
-    print(f"   • analysis/stock_correlation_results.csv")
+    print(f"   • analysis/stock/stock_price_trend_presentation.png")
+    print(f"   • analysis/stock/correlation_matrix_presentation.png")
+    print(f"   • analysis/stock/stock_analysis_results.csv")
+    print(f"   • analysis/stock/stock_correlation_results.csv")
 
 
 if __name__ == "__main__":

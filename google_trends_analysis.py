@@ -1,5 +1,4 @@
-# Google Trends Analysis for MASLD Awareness Tracker
-
+# google_trends_analysis.py
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,7 +74,7 @@ axes[1, 1].grid(True, alpha=0.3)
 axes[1, 1].tick_params(axis='x', rotation=45)
 
 plt.tight_layout()
-plt.savefig('google_trends_main_analysis.png', dpi=300, bbox_inches='tight')
+plt.savefig('analysis/google_trends/google_trends_main_analysis.png', dpi=300, bbox_inches='tight')
 
 # 2. CORRELATION ANALYSIS
 print("Performing correlation analysis...")
@@ -87,7 +86,7 @@ sns.heatmap(correlation_matrix, mask=mask, annot=True, cmap='coolwarm', center=0
             square=True, fmt='.2f', cbar_kws={"shrink": .8})
 plt.title('Keyword Correlation Matrix', fontweight='bold', pad=20)
 plt.tight_layout()
-plt.savefig('google_trends_correlation_heatmap.png', dpi=300, bbox_inches='tight')
+plt.savefig('analysis/google_trends/google_trends_correlation_heatmap.png', dpi=300, bbox_inches='tight')
 
 # 3. EVENT STUDY ANALYSIS
 print("Conducting event study analysis...")
@@ -152,13 +151,13 @@ for event, results in event_results.items():
             print(f"  • {drug}: {direction} {abs(stats['percent_change']):.1f}% change")
 
 print(f"\nAnalysis complete! Files saved:")
-print(f"   • google_trends_main_analysis.png")
-print(f"   • google_trends_correlation_heatmap.png")
+print(f"   • analysis/google_trends/google_trends_main_analysis.png")
+print(f"   • analysis/google_trends/google_trends_correlation_heatmap.png")
 print(f"   • Statistical summary available in variable 'summary_stats'")
 
 # Show the plots
 plt.show()
 
 # Save summary statistics to CSV
-summary_stats.to_csv('analysis/google_trends_statistical_summary.csv')
-print(f"   • analysis/google_trends_statistical_summary.csv")
+summary_stats.to_csv('analysis/google_trends/google_trends_statistical_summary.csv')
+print(f"   • analysis/google_trends/google_trends_statistical_summary.csv")
