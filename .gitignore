@@ -1,2 +1,9 @@
+# API CREDENTIALS - NEVER COMMIT
 reddit_config.py
 key.txt
+
+# IGNORE PYTHON CACHE (but keep folders)
+__pycache__/
+
+# IGNORE EDITOR SETTINGS (but keep folder)
+.idea/
