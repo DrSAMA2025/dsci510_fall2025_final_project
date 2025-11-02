@@ -1,0 +1,72 @@
+COMPREHENSIVE MASLD REDDIT SENTIMENT ANALYSIS REPORT
+============================================================
+
+STUDY OVERVIEW
+--------------------
+Analysis Date: 2025-11-01 16:24
+Data Source: data\reddit_data_2023_2025_20251101_1404.csv
+Study Period: 2023-01-01 to 2025-10-28
+Key FDA Dates: Resmetirom (Mar 14, 2024), Semaglutide (Aug 15, 2025)
+
+DATA SUMMARY
+--------------------
+Total Records Analyzed: 9,255
+Posts: 1,039
+Comments: 8,216
+Date Range in Data: 2023-01-03 to 2025-11-01
+Days with Activity: 736
+
+OVERALL SENTIMENT RESULTS
+------------------------------
+Mean Sentiment: 0.199
+Standard Deviation: 0.544
+
+Sentiment Distribution:
+  Positive (>0.05): 4,978 (53.8%)
+  Neutral (-0.05 to 0.05): 1,828 (19.8%)
+  Negative (<-0.05): 2,449 (26.5%)
+
+KEY TERM MENTION ANALYSIS
+------------------------------
+RESMETIROM:
+  Mentions: 6 (0.1% of total)
+  Average Sentiment: 0.514
+
+SEMAGLUTIDE:
+  Mentions: 1,380 (14.9% of total)
+  Average Sentiment: 0.254
+
+MASLD:
+  Mentions: 786 (8.5% of total)
+  Average Sentiment: 0.180
+
+SUBREPDDIT ANALYSIS
+--------------------
+r/pharmacy: 2,004.0 records, sentiment: 0.088
+r/Ozempic: 1,877.0 records, sentiment: 0.312
+r/MASH: 1,132.0 records, sentiment: 0.145
+r/medicine: 876.0 records, sentiment: 0.114
+r/semaglutide: 820.0 records, sentiment: 0.341
+r/AskDocs: 779.0 records, sentiment: 0.223
+r/Supplements: 679.0 records, sentiment: 0.184
+r/NAFLD: 612.0 records, sentiment: 0.165
+r/Wegovy: 420.0 records, sentiment: 0.311
+r/NASH: 31.0 records, sentiment: 0.143
+r/obesity: 20.0 records, sentiment: -0.003
+r/MASLD: 5.0 records, sentiment: 0.469
+
+FILES GENERATED
+--------------------
+Visualizations (for presentation):
+  - sentiment_trend_fda_dates.png
+  - sentiment_by_subreddit.png
+  - sentiment_distribution.png
+
+Tables (for manuscript):
+  - reddit_table_overall_statistics.csv
+  - table_subreddit_analysis.csv
+  - reddit_table_key_mentions.csv
+
+Data Files:
+  - reddit_sentiment_daily_*.csv
+  - reddit_data_with_sentiment_*.csv

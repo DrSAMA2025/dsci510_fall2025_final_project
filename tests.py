@@ -135,6 +135,198 @@ if __name__ == "__main__":
     print("=" * 50)
 
 
+# Tests for Reddit Data (Data Source #2)
+# tests.py
+import pandas as pd
+import os
+import sys
+from datetime import datetime
+
+
+def test_reddit_data_quality():
+    """Test the quality and structure of Reddit data"""
+    print("=== REDDIT DATA QUALITY TESTS ===")
+
+    # Test 1: Check if Reddit data file exists
+    try:
+        reddit_files = [f for f in os.listdir('data') if f.startswith('reddit_data_2023_2025_') and f.endswith('.csv')]
+        assert len(reddit_files) > 0, "No Reddit data files found in data folder"
+        latest_file = max(reddit_files)
+        print(f"✓ Found Reddit data file: {latest_file}")
+    except Exception as e:
+        print(f"✗ Test 1 FAILED: {e}")
+        return False
+
+    # Test 2: Load and check data structure
+    try:
+        df = pd.read_csv(f'data/{latest_file}')
+        expected_columns = ['subreddit', 'post_title', 'post_text', 'comment_text', 'timestamp', 'type']
+        for col in expected_columns:
+            assert col in df.columns, f"Missing expected column: {col}"
+        print("✓ Data structure validation passed")
+    except Exception as e:
+        print(f"✗ Test 2 FAILED: {e}")
+        return False
+
+    # Test 3: Check data volume
+    try:
+        assert len(df) > 0, "Data file is empty"
+        assert len(df) >= 1000, f"Low data volume: only {len(df)} records"
+        print(f"✓ Data volume check passed: {len(df):,} records")
+    except Exception as e:
+        print(f"✗ Test 3 FAILED: {e}")
+        return False
+
+    # Test 4: Check date range
+    try:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        min_date = df['timestamp'].min()
+        max_date = df['timestamp'].max()
+        assert min_date >= pd.Timestamp('2023-01-01'), f"Data starts before study period: {min_date}"
+        assert max_date <= pd.Timestamp('2025-10-28'), f"Data extends beyond study period: {max_date}"
+        print(f"✓ Date range validation passed: {min_date.date()} to {max_date.date()}")
+    except Exception as e:
+        print(f"✗ Test 4 FAILED: {e}")
+        return False
+
+    # Test 5: Check subreddit coverage
+    try:
+        subreddits = df['subreddit'].unique()
+        expected_subs = ['Ozempic', 'Wegovy', 'semaglutide', 'NAFLD', 'MASH']
+        found_subs = [sub for sub in expected_subs if sub in subreddits]
+        assert len(found_subs) >= 3, f"Missing key subreddits. Found: {found_subs}"
+        print(f"✓ Subreddit coverage passed: {len(subreddits)} subreddits including {found_subs}")
+    except Exception as e:
+        print(f"✗ Test 5 FAILED: {e}")
+        return False
+
+    # Test 6: Check for key term mentions
+    try:
+        all_text = df['post_text'].fillna('') + ' ' + df['comment_text'].fillna('')
+        key_terms = ['resmetirom', 'rezdiffra', 'semaglutide', 'ozempic', 'wegovy', 'nafld', 'nash', 'masld']
+        mentions = {term: all_text.str.contains(term, case=False).sum() for term in key_terms}
+        total_mentions = sum(mentions.values())
+        assert total_mentions > 0, "No mentions of key MASLD terms found"
+        print(f"✓ Key term mentions found: {total_mentions} total mentions")
+        for term, count in mentions.items():
+            if count > 0:
+                print(f"  - {term}: {count} mentions")
+    except Exception as e:
+        print(f"✗ Test 6 FAILED: {e}")
+        return False
+
+    print("\nALL REDDIT DATA TESTS PASSED!")
+    return True
+
+
+def test_sentiment_analysis_output():
+    """Test the sentiment analysis outputs"""
+    print("\n=== SENTIMENT ANALYSIS OUTPUT TESTS ===")
+
+    # Test 1: Check if sentiment analysis files exist
+    try:
+        analysis_files = os.listdir('analysis')
+        sentiment_files = [f for f in analysis_files if 'sentiment' in f.lower()]
+        assert len(sentiment_files) >= 3, f"Not enough sentiment analysis files. Found: {sentiment_files}"
+        print(f"✓ Found sentiment analysis files: {len(sentiment_files)} files")
+    except Exception as e:
+        print(f"✗ Sentiment file test FAILED: {e}")
+        return False
+
+    # Test 2: Check daily sentiment file
+    try:
+        daily_files = [f for f in analysis_files if 'daily' in f.lower() and 'sentiment' in f.lower()]
+        if daily_files:
+            daily_df = pd.read_csv(f'analysis/{daily_files[0]}')
+            assert 'avg_sentiment' in daily_df.columns, "Missing avg_sentiment column"
+            assert 'date' in daily_df.columns, "Missing date column"
+            assert len(daily_df) > 0, "Daily sentiment file is empty"
+            print(f"✓ Daily sentiment file validation passed: {len(daily_df)} days")
+    except Exception as e:
+        print(f"✗ Daily sentiment test FAILED: {e}")
+        return False
+
+    # Test 3: Check sentiment range
+    try:
+        full_files = [f for f in analysis_files if 'with_sentiment' in f.lower()]
+        if full_files:
+            full_df = pd.read_csv(f'analysis/{full_files[0]}')
+            assert 'sentiment' in full_df.columns, "Missing sentiment column in full dataset"
+            sentiment_range = full_df['sentiment'].between(-1, 1).all()
+            assert sentiment_range, "Sentiment scores outside valid range (-1 to 1)"
+            print(
+                f"✓ Sentiment range validation passed: {full_df['sentiment'].min():.3f} to {full_df['sentiment'].max():.3f}")
+    except Exception as e:
+        print(f"✗ Sentiment range test FAILED: {e}")
+        return False
+
+    print("ALL SENTIMENT ANALYSIS TESTS PASSED!")
+    return True
+
+
+def test_visualization_outputs():
+    """Test that visualization files were created"""
+    print("\n=== VISUALIZATION OUTPUT TESTS ===")
+
+    try:
+        analysis_files = os.listdir('analysis')
+        plot_files = [f for f in analysis_files if f.endswith('.png')]
+        assert len(plot_files) >= 3, f"Expected at least 3 plots, found: {len(plot_files)}"
+
+        expected_plots = ['trend', 'subreddit', 'distribution']
+        found_keywords = []
+        for plot_file in plot_files:
+            if any(keyword in plot_file.lower() for keyword in ['trend', 'fda']):
+                found_keywords.append('trend')
+            elif 'subreddit' in plot_file.lower():
+                found_keywords.append('subreddit')
+            elif 'distribution' in plot_file.lower():
+                found_keywords.append('distribution')
+
+        assert len(set(found_keywords)) >= 2, f"Missing key plot types. Found: {found_keywords}"
+        print(f"✓ Visualization files check passed: {len(plot_files)} plots generated")
+
+    except Exception as e:
+        print(f"✗ Visualization test FAILED: {e}")
+        return False
+
+    print("ALL VISUALIZATION TESTS PASSED!")
+    return True
+
+
+def main():
+    """Run all tests"""
+    print("Running MASLD Reddit Analysis Tests...")
+    print("=" * 50)
+
+    all_passed = True
+
+    # Run data quality tests
+    if not test_reddit_data_quality():
+        all_passed = False
+
+    # Run sentiment analysis tests (only if analysis folder exists)
+    if os.path.exists('analysis'):
+        if not test_sentiment_analysis_output():
+            all_passed = False
+        if not test_visualization_outputs():
+            all_passed = False
+    else:
+        print("\nAnalysis folder not found - skipping sentiment analysis tests")
+
+    print("\n" + "=" * 50)
+    if all_passed:
+        print("ALL TESTS PASSED! Reddit data analysis is ready for use.")
+    else:
+        print("SOME TESTS FAILED! Please check your data and analysis.")
+
+    return all_passed
+
+
+if __name__ == "__main__":
+    main()
+
+
 
 # Tests for Stock Data (Data Source #5)
 def test_stock_data_integrity(filename='data/stock_prices.csv'):
