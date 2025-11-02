@@ -1,0 +1,14 @@
+Metric,Value
+total_publications,1344
+publications_with_abstracts,1142
+publications_mentioning_masld,400
+publications_mentioning_nafld,175
+publications_mentioning_nash,130
+publications_mentioning_mash,197
+publications_mentioning_resmetirom,237
+publications_mentioning_glp1,600
+publications_mentioning_masld_resmetirom,100
+publications_mentioning_masld_glp1,94
+unique_journals,620
+date_range_start,2023-01-01 00:00:00
+date_range_end,2026-01-01 00:00:00

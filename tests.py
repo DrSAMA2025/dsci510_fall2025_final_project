@@ -326,7 +326,323 @@ def main():
 if __name__ == "__main__":
     main()
 
+# Tests for PubMed Data (Data Source #3)
+# tests_pubmed.py
+import unittest
+import pandas as pd
+import os
+import sys
+from unittest.mock import patch, MagicMock
+import xml.etree.ElementTree as ET
 
+# Add the current directory to Python path so we can import the modules
+sys.path.append('.')
+
+
+class TestPubMedDataCollection(unittest.TestCase):
+    """Test PubMed data collection functions"""
+
+    def setUp(self):
+        """Set up test data"""
+        self.sample_pubmed_xml = """
+        <PubmedArticleSet>
+            <PubmedArticle>
+                <MedlineCitation Status="MEDLINE" Owner="NLM">
+                    <PMID Version="1">12345678</PMID>
+                    <Article>
+                        <ArticleTitle>Test Article About MASLD and Semaglutide</ArticleTitle>
+                        <Abstract>
+                            <AbstractText>This is a test abstract about MASLD treatment with Semaglutide.</AbstractText>
+                        </Abstract>
+                        <AuthorList CompleteYN="Y">
+                            <Author ValidYN="Y">
+                                <LastName>Smith</LastName>
+                                <ForeName>John</ForeName>
+                            </Author>
+                            <Author ValidYN="Y">
+                                <LastName>Johnson</LastName>
+                                <ForeName>Jane</ForeName>
+                            </Author>
+                        </AuthorList>
+                    </Article>
+                    <Journal>
+                        <Title>Test Journal</Title>
+                    </Journal>
+                    <PubDate>
+                        <Year>2024</Year>
+                        <Month>Mar</Month>
+                    </PubDate>
+                </MedlineCitation>
+            </PubmedArticle>
+        </PubmedArticleSet>
+        """
+
+    def test_search_terms_creation(self):
+        """Test that search terms are created correctly"""
+        from pubmed_data_collection import get_pubmed_search_queries
+
+        queries = get_pubmed_search_queries()
+
+        self.assertIsInstance(queries, list)
+        self.assertGreater(len(queries), 0)
+
+        # Check that key terms are included
+        all_terms = ' '.join(queries).lower()
+        self.assertIn('masld', all_terms)
+        self.assertIn('nafld', all_terms)
+        self.assertIn('resmetirom', all_terms)
+        self.assertIn('semaglutide', all_terms)
+
+    def test_xml_parsing(self):
+        """Test PubMed XML parsing"""
+        from pubmed_data_collection import parse_pubmed_xml
+
+        articles = parse_pubmed_xml(self.sample_pubmed_xml.encode())
+
+        self.assertEqual(len(articles), 1)
+        article = articles[0]
+
+        self.assertEqual(article['pubmed_id'], '12345678')
+        self.assertEqual(article['title'], 'Test Article About MASLD and Semaglutide')
+        self.assertIn('MASLD', article['title'])
+        self.assertIn('Semaglutide', article['abstract'])
+        self.assertEqual(article['journal'], 'Test Journal')
+        self.assertEqual(article['publication_year'], '2024')
+        self.assertEqual(article['publication_month'], 'Mar')
+        self.assertIn('John Smith', article['authors'])
+        self.assertIn('Jane Johnson', article['authors'])
+
+    def test_article_data_extraction(self):
+        """Test individual article data extraction"""
+        from pubmed_data_collection import extract_article_data
+
+        root = ET.fromstring(self.sample_pubmed_xml)
+        article_element = root.find('.//PubmedArticle')
+
+        article_data = extract_article_data(article_element)
+
+        self.assertIsNotNone(article_data)
+        self.assertEqual(article_data['pubmed_id'], '12345678')
+        self.assertTrue(article_data['has_abstract'])
+        self.assertGreater(article_data['abstract_length'], 0)
+
+    @patch('pubmed_data_collection.requests.get')
+    def test_api_connection(self, mock_get):
+        """Test PubMed API connection"""
+        from pubmed_data_collection import check_pubmed_connection
+
+        # Mock successful response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'esearchresult': {
+                'count': '100',
+                'idlist': ['123', '456', '789']
+            }
+        }
+        mock_get.return_value = mock_response
+
+        result = check_pubmed_connection()
+        self.assertTrue(result)
+
+    def test_dataframe_creation(self):
+        """Test that DataFrame is created with correct columns"""
+        from pubmed_data_collection import save_pubmed_data
+
+        test_articles = [{
+            'pubmed_id': '12345678',
+            'title': 'Test Article',
+            'abstract': 'Test abstract',
+            'publication_year': '2024',
+            'publication_month': 'Mar',
+            'journal': 'Test Journal',
+            'authors': 'John Smith',
+            'keywords': '',
+            'publication_types': '',
+            'abstract_length': 12,
+            'has_abstract': True
+        }]
+
+        # Test saving data
+        filename = 'test_output.csv'
+        try:
+            result_file = save_pubmed_data(test_articles, filename)
+
+            # Check file was created
+            self.assertTrue(os.path.exists(result_file))
+
+            # Check DataFrame structure
+            df = pd.read_csv(result_file)
+            expected_columns = ['pubmed_id', 'title', 'abstract', 'publication_year',
+                                'publication_month', 'journal', 'authors', 'keywords',
+                                'publication_types', 'abstract_length', 'has_abstract',
+                                'publication_date']
+
+            for col in expected_columns:
+                self.assertIn(col, df.columns)
+
+        finally:
+            # Clean up
+            if os.path.exists(filename):
+                os.remove(filename)
+
+
+class TestPubMedAnalysis(unittest.TestCase):
+    """Test PubMed analysis functions"""
+
+    def setUp(self):
+        """Set up test data for analysis"""
+        self.test_data = pd.DataFrame({
+            'pubmed_id': ['1', '2', '3', '4', '5'],
+            'title': [
+                'MASLD treatment with Resmetirom',
+                'NAFLD and Semaglutide study',
+                'MASH clinical trial',
+                'GLP-1 agonists for obesity',
+                'Resmetirom Phase 3 results'
+            ],
+            'abstract': [
+                'Study of MASLD treated with Resmetirom shows good results',
+                'NAFLD patients responded well to Semaglutide treatment',
+                'MASH patients in clinical trial',
+                'GLP-1 agonists effective for weight loss',
+                'Resmetirom shows promise in Phase 3 trials'
+            ],
+            'publication_date': pd.to_datetime([
+                '2023-01-15', '2023-06-20', '2024-02-10',
+                '2024-08-05', '2025-03-12'
+            ]),
+            'journal': ['Journal A', 'Journal B', 'Journal A', 'Journal C', 'Journal B'],
+            'authors': ['Author X', 'Author Y', 'Author Z', 'Author W', 'Author V'],
+            'abstract_length': [100, 150, 120, 180, 90],
+            'has_abstract': [True, True, True, True, True]
+        })
+
+    def test_data_cleaning(self):
+        """Test data cleaning and preprocessing"""
+        from pubmed_analysis import clean_and_preprocess_data
+
+        df_cleaned = clean_and_preprocess_data(self.test_data.copy())
+
+        # Check that new columns are created
+        self.assertIn('year', df_cleaned.columns)
+        self.assertIn('month', df_cleaned.columns)
+        self.assertIn('year_month', df_cleaned.columns)
+
+        # Check term detection
+        self.assertIn('mentions_masld', df_cleaned.columns)
+        self.assertIn('mentions_nafld', df_cleaned.columns)
+        self.assertIn('mentions_resmetirom', df_cleaned.columns)
+        self.assertIn('mentions_glp1', df_cleaned.columns)
+
+        # Verify term detection works
+        self.assertTrue(df_cleaned.loc[0, 'mentions_masld'])
+        self.assertTrue(df_cleaned.loc[0, 'mentions_resmetirom'])
+        self.assertTrue(df_cleaned.loc[1, 'mentions_nafld'])
+        self.assertTrue(df_cleaned.loc[1, 'mentions_glp1'])
+
+    def test_publication_trends(self):
+        """Test publication trend analysis"""
+        from pubmed_analysis import analyze_publication_trends
+
+        df_cleaned = self.test_data.copy()
+        df_cleaned['year_month'] = df_cleaned['publication_date'].dt.to_period('M')
+
+        # Mock the analysis folder
+        with patch('pubmed_analysis.plt') as mock_plt:
+            trends = analyze_publication_trends(df_cleaned, 'test_analysis')
+
+            self.assertIsNotNone(trends)
+            self.assertGreater(len(trends), 0)
+
+    def test_summary_statistics(self):
+        """Test summary statistics generation"""
+        from pubmed_analysis import generate_summary_statistics
+
+        df_cleaned = self.test_data.copy()
+
+        # Add term mention columns for testing
+        df_cleaned['mentions_masld'] = [True, False, False, False, False]
+        df_cleaned['mentions_nafld'] = [False, True, False, False, False]
+        df_cleaned['mentions_resmetirom'] = [True, False, False, False, True]
+        df_cleaned['mentions_glp1'] = [False, True, False, True, False]
+        df_cleaned['mentions_masld_resmetirom'] = [True, False, False, False, False]
+        df_cleaned['mentions_masld_glp1'] = [False, False, False, False, False]
+
+        with patch('pandas.DataFrame.to_csv'):
+            summary_stats, yearly_stats = generate_summary_statistics(df_cleaned, 'test_analysis')
+
+            self.assertIsInstance(summary_stats, dict)
+            self.assertEqual(summary_stats['total_publications'], 5)
+            self.assertEqual(summary_stats['publications_mentioning_masld'], 1)
+            self.assertEqual(summary_stats['publications_mentioning_resmetirom'], 2)
+
+    def test_journal_analysis(self):
+        """Test journal distribution analysis"""
+        from pubmed_analysis import analyze_journal_distribution
+
+        with patch('pubmed_analysis.plt') as mock_plt:
+            journal_dist = analyze_journal_distribution(self.test_data, 'test_analysis')
+
+            self.assertIsNotNone(journal_dist)
+            self.assertEqual(len(journal_dist), 3)  # 3 unique journals
+            self.assertEqual(journal_dist['Journal A'], 2)
+            self.assertEqual(journal_dist['Journal B'], 2)
+
+
+class TestIntegration(unittest.TestCase):
+    """Integration tests for the full workflow"""
+
+    def test_folder_creation(self):
+        """Test that necessary folders are created"""
+        from pubmed_data_collection import setup_folders
+
+        # Test folder setup
+        setup_folders()
+        self.assertTrue(os.path.exists('data'))
+
+    def test_complete_workflow(self):
+        """Test the complete data collection and analysis workflow"""
+        # This would be a more comprehensive integration test
+        # For now, we'll verify the main functions exist and are callable
+        from pubmed_data_collection import main as collection_main
+        from pubmed_analysis import main as analysis_main
+
+        # Just verify the functions exist and are callable
+        self.assertTrue(callable(collection_main))
+        self.assertTrue(callable(analysis_main))
+
+
+def run_all_tests():
+    """Run all tests and print summary"""
+    print("Running PubMed Code Tests...")
+    print("=" * 50)
+
+    # Create a test suite
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromTestCase(TestPubMedDataCollection)
+    suite.addTests(loader.loadTestsFromTestCase(TestPubMedAnalysis))
+    suite.addTests(loader.loadTestsFromTestCase(TestIntegration))
+
+    # Run the tests
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+
+    print("=" * 50)
+    print(f"Tests run: {result.testsRun}")
+    print(f"Failures: {len(result.failures)}")
+    print(f"Errors: {len(result.errors)}")
+
+    if result.wasSuccessful():
+        print("✓ All tests passed!")
+    else:
+        print("✗ Some tests failed. Check the details above.")
+
+    return result.wasSuccessful()
+
+
+if __name__ == "__main__":
+    run_all_tests()
 
 # Tests for Stock Data (Data Source #5)
 def test_stock_data_integrity(filename='data/stock_prices.csv'):

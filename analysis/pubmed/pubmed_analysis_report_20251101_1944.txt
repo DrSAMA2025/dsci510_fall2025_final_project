@@ -1,0 +1,46 @@
+COMPREHENSIVE PUBMED ANALYSIS REPORT - MASLD PROJECT
+============================================================
+
+STUDY OVERVIEW
+--------------------
+Analysis Date: 2025-11-01 19:44
+Data Source: pubmed_masld_articles_20251101_1923.csv
+Study Period: 2023-01-01 to 2025-10-28
+Key FDA Dates: Resmetirom (Mar 14, 2024), Semaglutide (Aug 15, 2025)
+
+DATA SUMMARY
+--------------------
+Total Publications: 1344
+Publications With Abstracts: 1142
+Publications Mentioning Masld: 400
+Publications Mentioning Nafld: 175
+Publications Mentioning Nash: 130
+Publications Mentioning Mash: 197
+Publications Mentioning Resmetirom: 237
+Publications Mentioning Glp1: 600
+Publications Mentioning Masld Resmetirom: 100
+Publications Mentioning Masld Glp1: 94
+Unique Journals: 620
+Date Range Start: 2023-01-01 00:00:00
+Date Range End: 2026-01-01 00:00:00
+
+KEY FINDINGS
+--------------------
+MASLD was mentioned in 400 publications (29.8% of total)
+NAFLD was mentioned in 175 publications (13.0% of total)
+Resmetirom was mentioned in 237 publications (17.6% of total)
+GLP-1 agonists were mentioned in 600 publications (44.6% of total)
+MASLD + Resmetirom combined mentions: 100 publications
+MASLD + GLP-1 combined mentions: 94 publications
+
+FILES GENERATED
+--------------------
+Visualizations:
+  - pubmed_publication_trends.png
+  - pubmed_term_mentions.png
+  - pubmed_terminology_adoption.png
+  - pubmed_top_journals.png
+
+Data Tables:
+  - pubmed_summary_statistics.csv
+  - pubmed_yearly_statistics.csv
