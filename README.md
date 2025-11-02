@@ -36,12 +36,43 @@ Collect and analyze historical search interest data to track public awareness of
 - `google_trends_main_analysis.png` - Trends visualization
 - `google_trends_correlation_heatmap.png` - Keyword relationships
 
-## 🔄 Task 2: Reddit Data Collection & Sentiment Analysis - IN PROGRESS
-*Data collection and sentiment analysis pending*
+## 🔄 Task 2: Reddit Data Collection & Sentiment Analysis
+
+### Objective
+Collect and analyze public discussions from Reddit communities to measure sentiment and discourse patterns around MASLD, track community reactions to FDA drug approvals (Resmetirom - March 2024, GLP-1 agonists - August 2025), and compare patient versus medical professional perspectives.
+
+### Implementation
+**Script:** `reddit_data_collector.py`  
+**Timeframe:** January 1, 2023 - October 28, 2025  
+**Subreddits:** r/NAFLD, r/MASH, r/Ozempic, r/Wegovy, r/semaglutide, r/obesity, plus medical forums (r/medicine, r/pharmacy, r/AskDocs)  
+**Search Strategy:** Comprehensive keyword targeting including disease terminology (MASLD, NAFLD, NASH, MASH) and medications (Resmetirom, Rezdiffra, Semaglutide, Ozempic, Wegovy)
+
+### Output
+`reddit_data_2023_2025_20251101_1404.csv` - 9,255 posts and comments with metadata  
+**Reddit Analysis - COMPLETED**
+
+### Status Update
+**Data Collection:** Successfully collected 9,255 Reddit records (1,039 posts + 8,216 comments)  
+**Analysis:** Comprehensive sentiment analysis using VADER, daily sentiment tracking, subreddit comparisons, and FDA event impact assessment  
+**Visualizations:** Professional timeline charts, sentiment distributions, and community comparisons  
+**Key Files:** `reddit_sentiment_analysis.py`, visualization PNGs, statistical tables, comprehensive report
+
+### Key Findings
+- **Overall Positive Sentiment:** 0.199 average score across all discussions
+- **Strong Medical Professional Engagement:** r/pharmacy (2,004 records) and r/medicine (876 records) provided quality insights
+- **Active Patient Communities:** r/Ozempic (1,877 records) and r/semaglutide (820 records) showed high engagement
+- **Terminology Transition:** MASLD mentions emerging but NAFLD still dominant in patient discussions
+- **FDA Impact Visible:** Sentiment trends show reactions around approval dates
+
+### Deliverables
+- `reddit_data_collector.py` - Comprehensive data collection script with optimized search terms
+- `reddit_sentiment_analysis.py` - Complete sentiment analysis and visualization pipeline
+- `tests.py` - Data quality and analysis validation tests
+- `reddit_data_2023_2025_20251101_1404.csv` - Raw dataset (9,255 records)
+- Multiple analysis outputs in `/analysis` folder (tables, plots, reports)
 
 ## 📚 Task 3: PubMed Publications Analysis - PENDING
 *Academic publication trends analysis pending*
-
 
 
 ## 📈 Task 5: Stock Market Data Analysis 
@@ -87,3 +118,13 @@ Analyze stock market reactions to FDA drug approvals by tracking pharmaceutical 
 ## 🛠️ Setup Instructions
 ```bash
 pip install pytrends pandas matplotlib seaborn
+pip install pytrends pandas matplotlib seaborn requests praw vaderSentiment
+
+### Required Packages
+- **pytrends**: Google Trends API access
+- **pandas**: Data manipulation and analysis
+- **matplotlib**: Data visualization and plotting
+- **seaborn**: Enhanced statistical visualizations
+- **requests**: HTTP requests for web APIs
+- **praw**: Python Reddit API Wrapper
+- **vaderSentiment**: Sentiment analysis for social media text
