@@ -1,5 +1,6 @@
 # API CREDENTIALS - NEVER COMMIT
 reddit_config.py
+twitter_config.py
 key.txt
 
 # IGNORE PYTHON CACHE (but keep folders)

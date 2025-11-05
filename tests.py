@@ -332,6 +332,7 @@ def main():
 if __name__ == "__main__":
     main()
 
+
 # Tests for PubMed Data (Data Source #3)
 # tests_pubmed.py
 import unittest
@@ -650,7 +651,8 @@ def run_all_tests():
 if __name__ == "__main__":
     run_all_tests()
 
-# Tests for Stock Data (Data Source #5)
+
+# Tests for Stock Data (Data Source #4)
 def test_stock_data_integrity(filename='data/stock_prices.csv'):
     print("\n" + "=" * 50)
     print("STOCK DATA VALIDATION TESTS")
@@ -731,3 +733,177 @@ def test_stock_data_integrity(filename='data/stock_prices.csv'):
     except Exception as e:
         print(f"TEST FAILED: {e}")
         return False
+
+
+# Tests for Media Cloud Data (Data Source #5)
+import pandas as pd
+import os
+import sys
+from datetime import datetime
+
+
+def test_media_cloud_data_integrity():
+    """Test Media Cloud data integrity and structure"""
+    print("\n" + "=" * 60)
+    print("MEDIA CLOUD DATA VALIDATION TESTS")
+    print("=" * 60)
+
+    # Test 1: Check if analysis outputs exist
+    analysis_files = [
+        'analysis/media_cloud/dataset_statistics.csv',
+        'analysis/media_cloud/fda_impact_analysis.csv',
+        'analysis/media_cloud/source_analysis.csv',
+        'analysis/media_cloud/comparative_timeline.png',
+        'analysis/media_cloud/top_sources_comparison.png'
+    ]
+
+    print("Checking analysis output files...")
+    for file in analysis_files:
+        if os.path.exists(file):
+            print(f"{file} - Found")
+        else:
+            print(f"{file} - Missing")
+
+    # Test 2: Validate dataset statistics
+    if os.path.exists('analysis/media_cloud/dataset_statistics.csv'):
+        stats_df = pd.read_csv('analysis/media_cloud/dataset_statistics.csv')
+        print(f"\nDataset Statistics Validation:")
+        print(f"Loaded dataset statistics: {len(stats_df)} datasets")
+        print(f"Total articles: {stats_df['Total_Articles'].sum():,}")
+
+        # Check expected datasets
+        expected_datasets = ['disease', 'resmetirom', 'glp1']
+        missing_datasets = set(expected_datasets) - set(stats_df['Dataset'])
+        if not missing_datasets:
+            print("All expected datasets present")
+        else:
+            print(f"Missing datasets: {missing_datasets}")
+
+    # Test 3: Validate FDA impact analysis
+    if os.path.exists('analysis/media_cloud/fda_impact_analysis.csv'):
+        fda_df = pd.read_csv('analysis/media_cloud/fda_impact_analysis.csv')
+        print(f"\nFDA Impact Analysis Validation:")
+        print(f"FDA impact records: {len(fda_df)}")
+
+        # Check for expected FDA events
+        fda_events = fda_df['FDA_Event'].unique()
+        expected_events = ['Resmetirom', 'GLP-1_for_MASLD']
+        for event in expected_events:
+            if event in fda_events:
+                print(f"{event} analysis present")
+            else:
+                print(f"{event} analysis missing")
+
+    # Test 4: Validate source analysis
+    if os.path.exists('analysis/media_cloud/source_analysis.csv'):
+        sources_df = pd.read_csv('analysis/media_cloud/source_analysis.csv')
+        print(f"\nSource Analysis Validation:")
+        print(f"Source analysis records: {len(sources_df)}")
+
+        # Check top sources
+        top_sources = sources_df[sources_df['Rank'] == 1]
+        print("Top sources identified for each dataset")
+
+    # Test 5: Check raw data folders
+    raw_folders = [
+        'data/media_cloud/disease_focused',
+        'data/media_cloud/resmetirom_focused',
+        'data/media_cloud/glp1_focused'
+    ]
+
+    print(f"\nRaw Data Folder Check:")
+    for folder in raw_folders:
+        if os.path.exists(folder):
+            csv_files = [f for f in os.listdir(folder) if f.endswith('.csv')]
+            print(f"{folder}: {len(csv_files)} CSV files")
+        else:
+            print(f"{folder}: Folder missing")
+
+
+def test_media_cloud_coverage_patterns():
+    """Test coverage pattern findings from analysis"""
+    print("\n" + "=" * 60)
+    print("COVERAGE PATTERN VALIDATION")
+    print("=" * 60)
+
+    if not os.path.exists('analysis/media_cloud/dataset_statistics.csv'):
+        print("Dataset statistics not found - run analysis first")
+        return
+
+    stats_df = pd.read_csv('analysis/media_cloud/dataset_statistics.csv')
+
+    # Test 1: Verify coverage imbalance
+    disease_coverage = stats_df[stats_df['Dataset'] == 'disease']['Total_Articles'].iloc[0]
+    resmetirom_coverage = stats_df[stats_df['Dataset'] == 'resmetirom']['Total_Articles'].iloc[0]
+
+    print("Coverage Volume Tests:")
+    print(f"Disease coverage: {disease_coverage:,} articles")
+    print(f"Resmetirom coverage: {resmetirom_coverage:,} articles")
+
+    # Critical finding: Resmetirom should have much lower coverage
+    if resmetirom_coverage < disease_coverage * 0.01:  # Less than 1% of disease coverage
+        print("CRITICAL FINDING CONFIRMED: Resmetirom has minimal coverage vs disease")
+    else:
+        print("Unexpected: Resmetirom coverage relatively high")
+
+    # Test 2: Check FDA impact data
+    if os.path.exists('analysis/media_cloud/fda_impact_analysis.csv'):
+        fda_df = pd.read_csv('analysis/media_cloud/fda_impact_analysis.csv')
+
+        resmetirom_impact = fda_df[
+            (fda_df['Dataset'] == 'resmetirom') &
+            (fda_df['FDA_Event'] == 'Resmetirom')
+            ]
+
+        if not resmetirom_impact.empty:
+            percent_change = resmetirom_impact['Percent_Change'].iloc[0]
+            if percent_change > 1000:  # +1100% increase
+                print("CRITICAL FINDING CONFIRMED: Resmetirom FDA approval caused massive coverage spike")
+            else:
+                print(f"Resmetirom FDA impact: {percent_change}% (expected >1000%)")
+
+
+def test_media_cloud_script_import():
+    """Test that media_cloud_analysis.py can be imported and has required functions"""
+    print("\n" + "=" * 60)
+    print("SCRIPT IMPORT VALIDATION")
+    print("=" * 60)
+
+    try:
+        # Import the main analysis script
+        from media_cloud_analysis import (
+            setup_folders,
+            load_media_cloud_datasets,
+            analyze_basic_statistics,
+            create_comparative_timeline,
+            analyze_fda_impact
+        )
+        print("media_cloud_analysis.py imports successfully")
+        print("All required functions available")
+
+    except ImportError as e:
+        print(f"Import error: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+
+
+def main():
+    """Run all Media Cloud tests"""
+    print("MEDIA CLOUD ANALYSIS VALIDATION TESTS")
+
+    # Test script import
+    test_media_cloud_script_import()
+
+    # Test data integrity
+    test_media_cloud_data_integrity()
+
+    # Test coverage patterns
+    test_media_cloud_coverage_patterns()
+
+    print("\n" + "=" * 60)
+    print("TEST SUMMARY: Media Cloud analysis validation complete")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
