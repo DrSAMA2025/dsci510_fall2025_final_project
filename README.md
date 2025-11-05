@@ -36,7 +36,7 @@ Collect and analyze historical search interest data to track public awareness of
 - `google_trends_main_analysis.png` - Trends visualization
 - `google_trends_correlation_heatmap.png` - Keyword relationships
 
-## 🔄 Task 2: Reddit Data Collection & Sentiment Analysis
+## Task 2: Reddit Data Collection & Sentiment Analysis
 
 ### Objective
 Collect and analyze public discussions from Reddit communities to measure sentiment and discourse patterns around MASLD, track community reactions to FDA drug approvals (Resmetirom - March 2024, GLP-1 agonists - August 2025), and compare patient versus medical professional perspectives.
@@ -71,11 +71,43 @@ Collect and analyze public discussions from Reddit communities to measure sentim
 - `reddit_data_2023_2025_20251101_1404.csv` - Raw dataset (9,255 records)
 - Multiple analysis outputs in `/analysis` folder (tables, plots, reports)
 
-## 📚 Task 3: PubMed Publications Analysis - PENDING
-*Academic publication trends analysis pending*
+## Task 3: PubMed Publications Analysis
+
+**Objective**  
+Collect and analyze scientific publication trends to track research community adoption of MASLD terminology and monitor the impact of FDA drug approvals on academic research focus and pharmaceutical mentions in medical literature.
+
+**Implementation**  
+- **Script**: `pubmed_data_collection.py` and `pubmed_analysis.py`  
+- **Timeframe**: January 1, 2023 - October 28, 2025  
+- **Search Terms**: MASLD, NAFLD, NASH, MASH, Resmetirom, Rezdiffra, Semaglutide, GLP-1 agonists, Ozempic, Wegovy  
+- **Output**: Comprehensive analysis of 1,344 scientific publications
+
+**Status Update**  
+- **Data Collection**: Successfully collected 1,344 PubMed articles (2023-2025)  
+- **Analysis**: Comprehensive publication trends, terminology adoption, and drug mention analysis completed  
+- **Visualizations**: Professional multi-panel charts tracking scientific trends and FDA approval impacts  
+- **Key Files**: Complete PubMed pipeline with data collection, analysis, and visualization scripts
+
+**Key Findings**  
+- **MASLD terminology dominance**: 400 publications (29.8%) vs NAFLD: 175 publications (13.0%) - 2.3x higher adoption  
+- **GLP-1 research focus**: 600 publications (44.6% of total) show massive scientific interest  
+- **Resmetirom presence**: 237 publications (17.6%) establishing strong research foundation  
+- **Integrated research**: 100 publications linking MASLD + Resmetirom, 94 linking MASLD + GLP-1  
+- **Scientific leadership**: Publications distributed across 620 journals, led by hepatology and diabetes/metabolism journals
+
+**Deliverables**  
+- `pubmed_data_collection.py` - PubMed API data collection script  
+- `pubmed_analysis.py` - Comprehensive scientific literature analysis  
+- `pubmed_masld_articles_20251101_1923.csv` - Raw publication data (1,344 articles)  
+- `pubmed_publication_trends.png` - Research trends with FDA approval markers  
+- `pubmed_term_mentions.png` - Drug and disease terminology trends  
+- `pubmed_terminology_adoption.png` - MASLD vs NAFLD adoption rates  
+- `pubmed_top_journals.png` - Leading journals in MASLD research  
+- `pubmed_summary_statistics.csv` - Comprehensive publication metrics
 
 
-## 📈 Task 5: Stock Market Data Analysis 
+
+## Task 5: Stock Market Data Analysis 
 
 ### Objective
 Analyze stock market reactions to FDA drug approvals by tracking pharmaceutical companies (Novo Nordisk - GLP-1 agonists, Madrigal Pharmaceuticals - Resmetirom) to measure industry and investor responses to regulatory milestones and correlate with public awareness trends.
@@ -114,11 +146,9 @@ Analyze stock market reactions to FDA drug approvals by tracking pharmaceutical 
 - `analysis/stock_correlation_results.csv` - Correlation statistics
 - Integrated testing in `tests.py` - Data quality assurance
 
-
-## 🛠️ Setup Instructions
+## Setup Instructions
 ```bash
-pip install pytrends pandas matplotlib seaborn
-pip install pytrends pandas matplotlib seaborn requests praw vaderSentiment
+pip install pytrends pandas matplotlib seaborn requests praw vaderSentiment beautifulsoup4 lxml
 
 ### Required Packages
 - **pytrends**: Google Trends API access
@@ -128,3 +158,5 @@ pip install pytrends pandas matplotlib seaborn requests praw vaderSentiment
 - **requests**: HTTP requests for web APIs
 - **praw**: Python Reddit API Wrapper
 - **vaderSentiment**: Sentiment analysis for social media text
+- **beautifulsoup4**: HTML/XML parsing for PubMed data
+- **lxml**: XML processing for PubMed API responses
