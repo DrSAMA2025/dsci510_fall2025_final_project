@@ -1,10 +1,19 @@
-# API CREDENTIALS - NEVER COMMIT
-reddit_config.py
-twitter_config.py
+# 1. API SECRETS & KEYS (Mandatory Exclusions)
+.env
+src/.env
+kaggle.json
 key.txt
+reddit_config.py
 
-# IGNORE PYTHON CACHE (but keep folders)
+# 2. DATA AND RESULTS FOLDERS (Mandatory Exclusions)
+data/
+results/
+
+# 3. PYTHON & EDITOR EXCLUSIONS
 __pycache__/
-
-# IGNORE EDITOR SETTINGS (but keep folder)
+*.pyc
 .idea/
+.vscode/
+
+# 4. NOTEBOOK CHECKPOINTS
+.ipynb_checkpoints/
