@@ -1,7 +1,0 @@
-Dataset,FDA_Event,Pre_FDA_Articles,Post_FDA_Articles,Percent_Change,Change_Direction,Analysis_Period
-disease,Resmetirom,552,446,-19.202898550724637,decrease,30_days
-disease,GLP-1_for_MASLD,672,649,-3.422619047619048,decrease,30_days
-resmetirom,Resmetirom,2,24,1100.0,increase,30_days
-resmetirom,GLP-1_for_MASLD,6,9,50.0,increase,30_days
-glp1,Resmetirom,393,659,67.68447837150127,increase,30_days
-glp1,GLP-1_for_MASLD,587,637,8.517887563884157,increase,30_days
