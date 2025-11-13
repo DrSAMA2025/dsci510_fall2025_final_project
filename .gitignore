@@ -9,6 +9,7 @@ reddit_config.py
 # 2. DATA AND RESULTS FOLDERS (Mandatory Exclusions)
 data/
 results/
+anaconda_projects/
 
 # 3. PYTHON & EDITOR EXCLUSIONS
 __pycache__/
@@ -18,3 +19,4 @@ __pycache__/
 
 # 4. NOTEBOOK CHECKPOINTS
 .ipynb_checkpoints/
+.virtual_documents/

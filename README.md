@@ -81,9 +81,32 @@ python main.py
 - Skip Reddit/Pubmed APIs: `python main.py --skip-reddit --skip-pubmed`
 - Quick test run: `python main.py --quick`
 
+### Testing
+Run comprehensive tests to validate all data sources and API connectivity:
+```bash
+python src/tests.py
+```
+This test suite validates API connections, data quality, and Google Drive fallback functionality across all 5 data sources.
+
+### Project Structure
+- **src/**: Source code directory
+  - `load.py`: Data collection from APIs
+  - `process.py`: Data cleaning and processing  
+  - `analyze.py`: Analysis and visualization
+  - `config.py`: Configuration and constants
+  - `tests.py`: Test suite validation
+  - `main.py`: Main execution script
+  - `results.ipynb`: Interactive analysis notebook
+- **data/**: Collected datasets (excluded from Git)
+- **results/**: Analysis outputs (excluded from Git) 
+- **doc/**: Final project progress report
+- **requirements.txt**: Python dependencies
+- **README.md**: Project documentation
+
 ### Output Locations
 - **Results**: All analysis outputs in `/results/` folder
 - **Data**: All collected data in `/data/` folder
 - **Logs**: Execution details printed to console
 
 **Interactive Analysis**: See `src/results.ipynb` for detailed analysis and visualizations.
+
