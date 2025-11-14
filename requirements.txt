@@ -22,3 +22,7 @@ seaborn>=0.12.0
 # Text Processing & NLP
 vaderSentiment>=3.3.2        # For Reddit sentiment analysis
 nltk>=3.8.0                  # Used alongside VADER
+
+# Python Standard Library modules (not required to install)
+# pathlib - File path handling (standard library)
+# glob - File pattern matching (standard library)
