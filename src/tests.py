@@ -30,7 +30,6 @@ sys.path.append('.')
 def test_reddit_api_connection():
     """
     Tests connectivity to the Reddit API using PRAW.
-    This test is essential for the Final Project Progress Report.
     """
     print("\n" + "=" * 70)
     print("API CONNECTION TEST (Reddit/PRAW)")
@@ -418,7 +417,7 @@ def run_all_tests():
 
     test_results = {}
 
-    # 1. API Connection Test (Crucial for Progress Report)
+    # 1. API Connection Test
     test_results['api_connection'] = test_reddit_api_connection()
 
     # 2. Data Quality Tests

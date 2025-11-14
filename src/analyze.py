@@ -90,7 +90,7 @@ def analyze_reddit_sentiment(df_reddit: pd.DataFrame, notebook_plot=False):
     plt.ylabel('Average Compound Sentiment Score (VADER)')
     plt.grid(True, linestyle='--', alpha=0.6)
 
-    # ADD FDA APPROVAL LINES
+    # Add FDA Approval Lines
     for label, date_str in FDA_EVENT_DATES.items():
         plt.axvline(pd.to_datetime(date_str), color='red', linestyle='--', alpha=0.7, label=f'{label}')
 
@@ -98,7 +98,7 @@ def analyze_reddit_sentiment(df_reddit: pd.DataFrame, notebook_plot=False):
     plt.axhline(0.05, color='gray', linestyle=':', label='Slightly Positive Threshold')
     plt.axhline(-0.05, color='gray', linestyle=':', label='Slightly Negative Threshold')
 
-    # ADD LEGEND
+    # Add legend
     plt.legend()
 
     if not notebook_plot:
@@ -116,7 +116,7 @@ def analyze_pubmed_publication_rate(df_pubmed: pd.DataFrame, notebook_plot=False
     print("\n[Analysis] Analyzing PubMed Publications...")
     save_dir = RESULTS_DIR / PUBMED_ANALYSIS_SUBDIR
 
-    # Create boolean columns (from your old working code)
+    # Create boolean columns
     df_pubmed['mentions_masld_resmetirom'] = (
                                                      df_pubmed['title'].str.contains('masld|mafld', case=False,
                                                                                      na=False) |
@@ -139,7 +139,7 @@ def analyze_pubmed_publication_rate(df_pubmed: pd.DataFrame, notebook_plot=False
                                                    'semaglutide|ozempic|wegovy|glp-1|glp1', case=False, na=False)
                                        )
 
-    # Group by month and plot (from your old working code)
+    # Group by month and plot
     monthly_data = df_pubmed.groupby(pd.Grouper(key='publication_date', freq='ME')).agg({
         'mentions_masld_resmetirom': 'sum',
         'mentions_masld_glp1': 'sum'
@@ -162,7 +162,7 @@ def analyze_pubmed_publication_rate(df_pubmed: pd.DataFrame, notebook_plot=False
         date = pd.to_datetime(date_str)
         plt.axvline(date, color='red', linestyle='--', alpha=0.7, linewidth=1.5)
 
-    # ADD LABELS
+    # Add Labels
     for label, date_str in FDA_EVENT_DATES.items():
         date = pd.to_datetime(date_str)
         plt.text(date, plt.ylim()[1] * 0.9, label, rotation=90,
@@ -268,7 +268,7 @@ def analyze_media_cloud_timeline(notebook_plot=False):
             print("  > Media Cloud data not available for analysis")
             return None
 
-        # Load datasets (you'll need to implement this based on your data structure)
+        # Load datasets
         datasets = load_media_cloud_datasets()
         if not datasets:
             print("  > No Media Cloud datasets loaded successfully")
@@ -410,10 +410,6 @@ def analyze_media_cloud_sources(notebook_plot=False):
 
 
 def load_media_cloud_datasets():
-    """
-    Load Media Cloud datasets (adapted from your original function).
-    You'll need to implement the actual file loading logic based on your data structure.
-    """
     media_cloud_data = DATA_DIR / "media_cloud"
     datasets = {}
 
@@ -423,7 +419,7 @@ def load_media_cloud_datasets():
         if folder_path.exists():
             dataset_data = {}
 
-            # Load counts data (you'll need to adapt this to your actual file structure)
+            # Load counts data
             counts_files = list(folder_path.glob("*counts*.csv"))
             if counts_files:
                 try:
