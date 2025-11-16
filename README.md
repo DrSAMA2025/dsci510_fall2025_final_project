@@ -86,7 +86,7 @@ This test suite validates API connections, data quality, and Google Drive fallba
 - **Logs**: Execution details printed to console
 - **Interactive Analysis**: See `src/results.ipynb` for detailed analysis and visualizations.
 
-## (1) Google Trends
+## (1) Google Trends Analysis
 ### Google Trends Analysis
 - **Search Interest Tracking**: Weekly relative search volume for MASLD, NAFLD, Rezdiffra, Wegovy, and Ozempic (2023-2025)
 - **FDA Event Impact Analysis**: Statistical testing of search behavior changes around Resmetirom and GLP-1 approval dates
