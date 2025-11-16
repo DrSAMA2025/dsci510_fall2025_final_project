@@ -237,3 +237,114 @@ jupyter notebook src/results.ipynb
   - `results/pubmed/advanced_pubmed_fda_impact.png` - FDA approval impact with significance markers
 - **Statistical Summary**: Console output with p-values, odds ratios, and comprehensive summary table
 - **Data Export**: `results/pubmed/advanced_pubmed_summary_table.csv` - Complete analysis results
+
+## (4) Stock Data Analysis
+
+### Stock Data Analysis
+- **Price Movement Tracking**: Daily closing prices for Novo Nordisk (NVO) and Madrigal Pharmaceuticals (MDGL) from 2023-2025
+- **FDA Event Impact Analysis**: Event study methodology to measure stock price reactions around Resmetirom and GLP-1 approval dates  
+- **Cross-Platform Correlation**: Statistical analysis connecting stock returns with Google Trends search interest and Reddit sentiment
+- **Volatility Analysis**: Rolling volatility measurements to assess market uncertainty around key regulatory events
+- **Statistical Significance Testing**: T-tests and F-tests to validate observed changes in returns and volatility patterns
+
+### Summary of the Results
+- **Comprehensive stock price tracking** for NVO and MDGL across 705 trading days (2023-2025) with dual-axis visualization
+- **Event study analysis** revealing statistically significant market reactions to FDA approvals with proper pre/post-event windows
+- **Cross-platform correlation analysis** showing very weak relationships between stock returns and external data sources
+- **Volatility pattern identification** with rolling 5-day volatility measurements around key regulatory events
+- **Statistical validation** of all findings with p-values and significance markers for robust conclusions
+- **Automated visualization pipeline** generating event study charts, correlation heatmaps, and volatility trend plots
+
+### How to Run Stock Data Analysis
+
+### Data Collection
+```bash
+# Automatic API collection
+python src/load.py          # Fetches stock data via yfinance API
+
+# Manual execution
+from src.load import get_stock_data
+stock_data = get_stock_data()
+```
+### Fallback Option
+Pre-collected stock dataset automatically downloads from Google Drive if API fails
+
+### Analysis Execution
+```bash
+# Complete analysis pipeline
+python src/main.py
+
+# Stock specific analysis
+from src.analyze import analyze_stock_and_events, advanced_stock_analysis
+analyze_stock_and_events(processed_stocks)
+
+# Cross-platform correlation
+from src.analyze import cross_platform_correlation_analysis
+correlation_results = cross_platform_correlation_analysis(processed_data)
+
+# Jupyter notebook exploration
+jupyter notebook src/results.ipynb
+```
+### Output
+- **Basic Analysis**: `results/stock_analysis/stock_vs_events_timeline.png` - Price movements with FDA event markers
+- **Advanced Analysis**: `results/stock_analysis/advanced_stock_comparison.png` - Statistical event study results
+- **Volatility Analysis**: `results/stock_analysis/advanced_stock_volatility_comparison.png` - Market uncertainty patterns
+- **Cross-Platform Correlation**: `results/stock_analysis/cross_platform_trends_correlation.png` - Heatmap of stock-search relationships
+- **Statistical Summary**: Console output with correlation coefficients and significance testing for all analyses
+
+## (5) Media Cloud Analysis
+
+### Media Cloud Analysis
+- **Coverage Volume Tracking**: Daily article counts across disease-focused, Resmetirom-focused, and GLP-1-focused media coverage (2023-2025)
+- **FDA Event Impact Analysis**: Interrupted time series analysis with statistical testing of coverage changes around Resmetirom and GLP-1 approval dates
+- **Media Concentration Analysis**: Gini coefficient and Herfindahl-Hirschman Index calculations to measure coverage concentration across media outlets
+- **Topic Propagation Analysis**: Time-lagged correlations and Granger causality tests to identify predictive relationships between coverage types
+- **Source Network Analysis**: Jaccard similarity and source overlap quantification across coverage datasets
+- **Statistical Significance Testing**: T-tests, Mann-Whitney U tests, and Granger causality with p-values to validate observed patterns
+
+### Summary of the Results
+- **Comprehensive media coverage tracking** across 1,036 days with 21,905 disease articles, 145 Resmetirom articles, and 15,263 GLP-1 articles
+- **Advanced statistical event analysis** revealing significant spillover effects - Resmetirom approval increased GLP-1 coverage by 55% (p=0.0114)
+- **Extreme media concentration** detected in Resmetirom coverage (Gini: 0.763, HHI: 5016) with Benzinga dominating 70.3% of coverage
+- **Topic propagation insights** showing Resmetirom coverage predicts GLP-1 coverage with 3-4 week lead time (Granger causality p=0.0062)
+- **Statistical validation** of all concentration differences between datasets (p<0.0001) and predictive relationships
+- **Multi-faceted visualization approach** generating event impact charts, concentration metrics, Lorenz curves, and causality test results
+
+### How to Run Media Cloud Analysis
+### Data Collection
+```bash
+# Automatic data download
+python src/load.py          # Downloads pre-collected Media Cloud data from Google Drive
+
+# Manual execution
+from src.load import get_media_cloud_data
+media_data_available = get_media_cloud_data()
+```
+### Fallback Option
+Pre-collected Media Cloud datasets automatically download from Google Drive with comprehensive coverage across three focus areas
+
+### Analysis Execution
+```bash
+# Complete analysis pipeline
+python src/main.py
+
+# Media Cloud specific analyses
+from src.analyze import advanced_media_cloud_event_analysis
+media_cloud_results = advanced_media_cloud_event_analysis(notebook_plot=True)
+
+from src.analyze import advanced_media_cloud_concentration_analysis  
+concentration_results = advanced_media_cloud_concentration_analysis(notebook_plot=True)
+
+from src.analyze import advanced_media_cloud_topic_propagation
+propagation_results = advanced_media_cloud_topic_propagation(notebook_plot=True)
+
+# Jupyter notebook exploration
+jupyter notebook src/results.ipynb
+```
+### Output
+- **Event Impact Analysis**: `results/media_cloud/media_cloud_event_impact_barchart.png` - FDA approval impacts with statistical significance
+- **Time Series Trends**: `results/media_cloud/media_cloud_timeseries_trends.png` - Coverage trends with event markers
+- **Concentration Metrics**: `results/media_cloud/media_cloud_concentration_metrics.png` - Gini coefficients and HHI across datasets
+- **Source Analysis**: `results/media_cloud/media_cloud_source_analysis.png` - Top sources and overlap visualization
+- **Topic Propagation**: `results/media_cloud/media_cloud_granger_causality.png` - Predictive relationship testing
+- **Statistical Summary**: Console output with p-values, effect sizes, and significance markers for all analyses

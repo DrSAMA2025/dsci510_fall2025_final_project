@@ -1,7 +1,9 @@
 # Core Data Manipulation and Analysis
-pandas>=2.0.0
+pandas>=2.1.0
 numpy>=1.24.0
 scipy>=1.10.0
+openpyxl>=3.1.0
+statsmodels>=0.14.0
 
 # Data Download
 gdown>=4.7.0
@@ -19,6 +21,7 @@ lxml>=4.9.0                  # High-performance HTML/XML parser
 # Visualization and Plotting
 matplotlib>=3.7.0
 seaborn>=0.12.0
+jupyter>=1.0.0
 
 # Text Processing & NLP
 vaderSentiment>=3.3.2        # For Reddit sentiment analysis

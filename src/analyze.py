@@ -12,6 +12,7 @@ import networkx as nx
 from collections import defaultdict
 from itertools import combinations
 from scipy.stats import fisher_exact
+from statsmodels.tsa.stattools import grangercausalitytests
 
 # Import configuration constants
 from config import (
@@ -1588,6 +1589,645 @@ def analyze_stock_and_events(df_stocks: pd.DataFrame, notebook_plot=False):
         print("  > Warning: Could not calculate NVO price change for GLP-1 approval.")
 
 
+def advanced_stock_analysis(df_stocks: pd.DataFrame, notebook_plot=False):
+    """Advanced event study analysis of stock price reactions to FDA approvals"""
+    print("\n[Advanced Analysis] Stock Data Event Study Analysis...")
+    save_dir = RESULTS_DIR / STOCK_ANALYSIS_SUBDIR
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    # [Keep all the statistical calculation code the same...]
+    # 1. FDA event dates
+    resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
+    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+
+    # 2. Calculate daily returns
+    df_stocks['NVO_Returns'] = df_stocks['NVO_Close'].pct_change() * 100
+    df_stocks['MDGL_Returns'] = df_stocks['MDGL_Close'].pct_change() * 100
+
+    # 3. Define event windows and statistical testing (keep same)
+    event_windows = {
+        'Resmetirom_MDGL': {
+            'pre_window': df_stocks[(df_stocks.index < resmetirom_date)].tail(5)['MDGL_Returns'],
+            'post_window': df_stocks[(df_stocks.index >= resmetirom_date)].head(5)['MDGL_Returns'],
+            'company': 'Madrigal (MDGL)',
+            'event': 'Resmetirom Approval'
+        },
+        'GLP1_NVO': {
+            'pre_window': df_stocks[(df_stocks.index < glp1_date)].tail(5)['NVO_Returns'],
+            'post_window': df_stocks[(df_stocks.index >= glp1_date)].head(5)['NVO_Returns'],
+            'company': 'Novo Nordisk (NVO)',
+            'event': 'GLP-1 Approval'
+        }
+    }
+
+    # 4. Statistical significance testing (keep same)
+    print("\n" + "=" * 60)
+    print("STOCK EVENT STUDY - STATISTICAL SIGNIFICANCE TESTING")
+    print("=" * 60)
+
+    results = {}
+    for event_name, windows in event_windows.items():
+        pre_returns = windows['pre_window'].dropna()
+        post_returns = windows['post_window'].dropna()
+
+        if len(pre_returns) > 1 and len(post_returns) > 1:
+            t_stat, p_value = stats.ttest_ind(pre_returns, post_returns, equal_var=False)
+
+            pre_cumulative = (1 + pre_returns / 100).prod() - 1
+            post_cumulative = (1 + post_returns / 100).prod() - 1
+
+            results[event_name] = {
+                't_statistic': t_stat,
+                'p_value': p_value,
+                'pre_mean_return': pre_returns.mean(),
+                'post_mean_return': post_returns.mean(),
+                'pre_cumulative_return': pre_cumulative * 100,
+                'post_cumulative_return': post_cumulative * 100,
+                'absolute_change': post_returns.mean() - pre_returns.mean(),
+                'company': windows['company'],
+                'event': windows['event']
+            }
+
+            print(f"\n{windows['company']} - {windows['event']}:")
+            print(f"  Pre-event returns (±5 days): {pre_returns.mean():.2f}%")
+            print(f"  Post-event returns (±5 days): {post_returns.mean():.2f}%")
+            print(f"  Absolute change: {results[event_name]['absolute_change']:+.2f}%")
+            print(f"  T-statistic: {t_stat:.3f}, p-value: {p_value:.4f}")
+            print(f"  Significance: {'*' if p_value < 0.05 else 'Not significant'}")
+
+    # CREATE SEPARATE PLOTS
+
+    # Plot 1: MDGL returns around Resmetirom approval
+    plt.figure(figsize=(10, 6))
+    mdgl_event_data = df_stocks[
+        (df_stocks.index >= resmetirom_date - pd.Timedelta(days=10)) &
+        (df_stocks.index <= resmetirom_date + pd.Timedelta(days=10))
+        ]
+    plt.plot(mdgl_event_data.index, mdgl_event_data['MDGL_Returns'], marker='o', linewidth=2, color='blue')
+    plt.axvline(resmetirom_date, color='red', linestyle='--', label='Resmetirom Approval', linewidth=2)
+    plt.title('MDGL Daily Returns: Resmetirom FDA Approval Event Window', fontweight='bold')
+    plt.ylabel('Daily Returns (%)')
+    plt.xlabel('Date')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    mdgl_path = save_dir / "advanced_stock_mdgl_event.png"
+    plt.savefig(mdgl_path, dpi=300, bbox_inches='tight')
+    if not notebook_plot: plt.close()
+    print(f"  > Saved MDGL event study to: {mdgl_path.name}")
+
+    # Plot 2: NVO returns around GLP-1 approval
+    plt.figure(figsize=(10, 6))
+    nvo_event_data = df_stocks[
+        (df_stocks.index >= glp1_date - pd.Timedelta(days=10)) &
+        (df_stocks.index <= glp1_date + pd.Timedelta(days=10))
+        ]
+    plt.plot(nvo_event_data.index, nvo_event_data['NVO_Returns'], marker='o', linewidth=2, color='orange')
+    plt.axvline(glp1_date, color='red', linestyle='--', label='GLP-1 Approval', linewidth=2)
+    plt.title('NVO Daily Returns: GLP-1 FDA Approval Event Window', fontweight='bold')
+    plt.ylabel('Daily Returns (%)')
+    plt.xlabel('Date')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    nvo_path = save_dir / "advanced_stock_nvo_event.png"
+    plt.savefig(nvo_path, dpi=300, bbox_inches='tight')
+    if not notebook_plot: plt.close()
+    print(f"  > Saved NVO event study to: {nvo_path.name}")
+
+    # Plot 3: Statistical comparison bar chart
+    if results:
+        plt.figure(figsize=(10, 6))
+        events = []
+        pre_means = []
+        post_means = []
+        p_values = []
+
+        for event_name, result in results.items():
+            events.append(result['company'])
+            pre_means.append(result['pre_mean_return'])
+            post_means.append(result['post_mean_return'])
+            p_values.append(result['p_value'])
+
+        x = np.arange(len(events))
+        width = 0.35
+
+        bars1 = plt.bar(x - width / 2, pre_means, width, label='Pre-Approval (±5 days)', alpha=0.7, color='lightblue')
+        bars2 = plt.bar(x + width / 2, post_means, width, label='Post-Approval (±5 days)', alpha=0.7,
+                        color='lightcoral')
+
+        # Add significance markers and value labels
+        for i, (pre_bar, post_bar, p_val) in enumerate(zip(bars1, bars2, p_values)):
+            # Significance stars
+            if p_val < 0.05:
+                plt.text(i, max(pre_means[i], post_means[i]) + 1, '*',
+                         ha='center', va='bottom', fontsize=20, fontweight='bold', color='red')
+
+            # Value labels on bars
+            plt.text(pre_bar.get_x() + pre_bar.get_width() / 2, pre_bar.get_height(),
+                     f'{pre_means[i]:.2f}%', ha='center', va='bottom', fontweight='bold')
+            plt.text(post_bar.get_x() + post_bar.get_width() / 2, post_bar.get_height(),
+                     f'{post_means[i]:.2f}%', ha='center', va='bottom', fontweight='bold')
+
+        plt.title('Average Returns Before/After FDA Approvals\n(* = statistically significant)', fontweight='bold')
+        plt.ylabel('Average Daily Returns (%)')
+        plt.xlabel('Company and FDA Event')
+        plt.xticks(x, events)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+
+        comparison_path = save_dir / "advanced_stock_comparison.png"
+        plt.savefig(comparison_path, dpi=300, bbox_inches='tight')
+        if not notebook_plot: plt.close()
+        print(f"  > Saved statistical comparison to: {comparison_path.name}")
+
+    # 5. Summary table
+    print("\n" + "=" * 60)
+    print("STOCK EVENT STUDY - SUMMARY TABLE")
+    print("=" * 60)
+
+    if results:
+        summary_data = []
+        for event_name, result in results.items():
+            summary_data.append({
+                'Company': result['company'],
+                'Event': result['event'],
+                'Pre_Return (%)': f"{result['pre_mean_return']:.2f}",
+                'Post_Return (%)': f"{result['post_mean_return']:.2f}",
+                'Change (%)': f"{result['absolute_change']:+.2f}",
+                'P_Value': f"{result['p_value']:.4f}",
+                'Significant': 'Yes' if result['p_value'] < 0.05 else 'No'
+            })
+
+        summary_df = pd.DataFrame(summary_data)
+        print(summary_df.to_string(index=False))
+
+        summary_path = save_dir / "advanced_stock_summary_table.csv"
+        summary_df.to_csv(summary_path, index=False)
+        print(f"  > Saved summary table to: {summary_path.name}")
+
+    # Display plots in notebook if requested
+    if notebook_plot:
+        plt.show()
+
+    return results
+
+
+def advanced_stock_volatility_analysis(df_stocks: pd.DataFrame, notebook_plot=False):
+    """Advanced volatility analysis of stock price movements around FDA events"""
+    print("\n[Advanced Analysis] Stock Data Volatility Analysis...")
+    save_dir = RESULTS_DIR / STOCK_ANALYSIS_SUBDIR
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    # 1. FDA event dates
+    resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
+    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+
+    # 2. Calculate daily returns (if not already calculated)
+    if 'NVO_Returns' not in df_stocks.columns:
+        df_stocks['NVO_Returns'] = df_stocks['NVO_Close'].pct_change() * 100
+    if 'MDGL_Returns' not in df_stocks.columns:
+        df_stocks['MDGL_Returns'] = df_stocks['MDGL_Close'].pct_change() * 100
+
+    # 3. Define volatility windows (±10 trading days for better volatility measurement)
+    volatility_windows = {
+        'Resmetirom_MDGL': {
+            'pre_volatility': df_stocks[
+                (df_stocks.index >= resmetirom_date - pd.Timedelta(days=20)) &
+                (df_stocks.index < resmetirom_date)
+                ]['MDGL_Returns'].std(),
+            'post_volatility': df_stocks[
+                (df_stocks.index >= resmetirom_date) &
+                (df_stocks.index <= resmetirom_date + pd.Timedelta(days=20))
+                ]['MDGL_Returns'].std(),
+            'company': 'Madrigal (MDGL)',
+            'event': 'Resmetirom Approval'
+        },
+        'GLP1_NVO': {
+            'pre_volatility': df_stocks[
+                (df_stocks.index >= glp1_date - pd.Timedelta(days=20)) &
+                (df_stocks.index < glp1_date)
+                ]['NVO_Returns'].std(),
+            'post_volatility': df_stocks[
+                (df_stocks.index >= glp1_date) &
+                (df_stocks.index <= glp1_date + pd.Timedelta(days=20))
+                ]['NVO_Returns'].std(),
+            'company': 'Novo Nordisk (NVO)',
+            'event': 'GLP-1 Approval'
+        }
+    }
+
+    # 4. Statistical significance testing for volatility changes
+    print("\n" + "=" * 60)
+    print("VOLATILITY ANALYSIS - STATISTICAL SIGNIFICANCE TESTING")
+    print("=" * 60)
+
+    volatility_results = {}
+    for event_name, windows in volatility_windows.items():
+        # Get full return series for F-test
+        if event_name == 'Resmetirom_MDGL':
+            pre_returns = df_stocks[
+                (df_stocks.index >= resmetirom_date - pd.Timedelta(days=20)) &
+                (df_stocks.index < resmetirom_date)
+                ]['MDGL_Returns'].dropna()
+            post_returns = df_stocks[
+                (df_stocks.index >= resmetirom_date) &
+                (df_stocks.index <= resmetirom_date + pd.Timedelta(days=20))
+                ]['MDGL_Returns'].dropna()
+        else:
+            pre_returns = df_stocks[
+                (df_stocks.index >= glp1_date - pd.Timedelta(days=20)) &
+                (df_stocks.index < glp1_date)
+                ]['NVO_Returns'].dropna()
+            post_returns = df_stocks[
+                (df_stocks.index >= glp1_date) &
+                (df_stocks.index <= glp1_date + pd.Timedelta(days=20))
+                ]['NVO_Returns'].dropna()
+
+        if len(pre_returns) > 5 and len(post_returns) > 5:
+            # F-test for variance equality
+            f_stat = np.var(post_returns) / np.var(pre_returns)
+            p_value = stats.f.cdf(f_stat, len(post_returns) - 1, len(pre_returns) - 1)
+            # Two-tailed test
+            p_value = 2 * min(p_value, 1 - p_value)
+
+            volatility_change = ((windows['post_volatility'] - windows['pre_volatility']) /
+                                 windows['pre_volatility']) * 100
+
+            volatility_results[event_name] = {
+                'f_statistic': f_stat,
+                'p_value': p_value,
+                'pre_volatility': windows['pre_volatility'],
+                'post_volatility': windows['post_volatility'],
+                'volatility_change_pct': volatility_change,
+                'company': windows['company'],
+                'event': windows['event']
+            }
+
+            print(f"\n{windows['company']} - {windows['event']}:")
+            print(f"  Pre-event volatility (20 days): {windows['pre_volatility']:.2f}%")
+            print(f"  Post-event volatility (20 days): {windows['post_volatility']:.2f}%")
+            print(f"  Volatility change: {volatility_change:+.1f}%")
+            print(f"  F-statistic: {f_stat:.3f}, p-value: {p_value:.4f}")
+            print(f"  Significance: {'*' if p_value < 0.05 else 'Not significant'}")
+
+    # CREATE SEPARATE VOLATILITY PLOTS
+
+    # Plot 1: MDGL volatility around Resmetirom approval
+    plt.figure(figsize=(10, 6))
+    mdgl_vol_data = df_stocks[
+        (df_stocks.index >= resmetirom_date - pd.Timedelta(days=30)) &
+        (df_stocks.index <= resmetirom_date + pd.Timedelta(days=30))
+        ]
+
+    # Calculate rolling volatility (5-day window)
+    mdgl_vol_data['MDGL_Rolling_Vol'] = mdgl_vol_data['MDGL_Returns'].rolling(window=5).std()
+
+    plt.plot(mdgl_vol_data.index, mdgl_vol_data['MDGL_Rolling_Vol'],
+             linewidth=2, color='purple', label='5-Day Rolling Volatility')
+    plt.axvline(resmetirom_date, color='red', linestyle='--',
+                label='Resmetirom Approval', linewidth=2)
+    plt.axvspan(resmetirom_date - pd.Timedelta(days=20), resmetirom_date,
+                alpha=0.1, color='blue', label='Pre-Event Window')
+    plt.axvspan(resmetirom_date, resmetirom_date + pd.Timedelta(days=20),
+                alpha=0.1, color='orange', label='Post-Event Window')
+
+    plt.title('MDGL Volatility: Resmetirom FDA Approval Impact', fontweight='bold')
+    plt.ylabel('Rolling Volatility (5-day, %)')
+    plt.xlabel('Date')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    mdgl_vol_path = save_dir / "advanced_stock_mdgl_volatility.png"
+    plt.savefig(mdgl_vol_path, dpi=300, bbox_inches='tight')
+    if not notebook_plot: plt.close()
+    print(f"  > Saved MDGL volatility to: {mdgl_vol_path.name}")
+
+    # Plot 2: NVO volatility around GLP-1 approval
+    plt.figure(figsize=(10, 6))
+    nvo_vol_data = df_stocks[
+        (df_stocks.index >= glp1_date - pd.Timedelta(days=30)) &
+        (df_stocks.index <= glp1_date + pd.Timedelta(days=30))
+        ]
+
+    nvo_vol_data['NVO_Rolling_Vol'] = nvo_vol_data['NVO_Returns'].rolling(window=5).std()
+
+    plt.plot(nvo_vol_data.index, nvo_vol_data['NVO_Rolling_Vol'],
+             linewidth=2, color='green', label='5-Day Rolling Volatility')
+    plt.axvline(glp1_date, color='red', linestyle='--',
+                label='GLP-1 Approval', linewidth=2)
+    plt.axvspan(glp1_date - pd.Timedelta(days=20), glp1_date,
+                alpha=0.1, color='blue', label='Pre-Event Window')
+    plt.axvspan(glp1_date, glp1_date + pd.Timedelta(days=20),
+                alpha=0.1, color='orange', label='Post-Event Window')
+
+    plt.title('NVO Volatility: GLP-1 FDA Approval Impact', fontweight='bold')
+    plt.ylabel('Rolling Volatility (5-day, %)')
+    plt.xlabel('Date')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    nvo_vol_path = save_dir / "advanced_stock_nvo_volatility.png"
+    plt.savefig(nvo_vol_path, dpi=300, bbox_inches='tight')
+    if not notebook_plot: plt.close()
+    print(f"  > Saved NVO volatility to: {nvo_vol_path.name}")
+
+    # Plot 3: Volatility comparison bar chart
+    if volatility_results:
+        plt.figure(figsize=(10, 6))
+        events = []
+        pre_vols = []
+        post_vols = []
+        p_values = []
+
+        for event_name, result in volatility_results.items():
+            events.append(result['company'])
+            pre_vols.append(result['pre_volatility'])
+            post_vols.append(result['post_volatility'])
+            p_values.append(result['p_value'])
+
+        x = np.arange(len(events))
+        width = 0.35
+
+        bars1 = plt.bar(x - width / 2, pre_vols, width, label='Pre-Approval (20 days)',
+                        alpha=0.7, color='lightblue')
+        bars2 = plt.bar(x + width / 2, post_vols, width, label='Post-Approval (20 days)',
+                        alpha=0.7, color='lightcoral')
+
+        # Add significance markers and value labels
+        for i, (pre_bar, post_bar, p_val) in enumerate(zip(bars1, bars2, p_values)):
+            if p_val < 0.05:
+                plt.text(i, max(pre_vols[i], post_vols[i]) + 0.5, '*',
+                         ha='center', va='bottom', fontsize=20, fontweight='bold', color='red')
+
+            plt.text(pre_bar.get_x() + pre_bar.get_width() / 2, pre_bar.get_height(),
+                     f'{pre_vols[i]:.2f}%', ha='center', va='bottom', fontweight='bold')
+            plt.text(post_bar.get_x() + post_bar.get_width() / 2, post_bar.get_height(),
+                     f'{post_vols[i]:.2f}%', ha='center', va='bottom', fontweight='bold')
+
+        plt.title('Volatility Changes Before/After FDA Approvals\n(* = statistically significant)', fontweight='bold')
+        plt.ylabel('Daily Return Volatility (%)')
+        plt.xlabel('Company and FDA Event')
+        plt.xticks(x, events)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+
+        vol_comparison_path = save_dir / "advanced_stock_volatility_comparison.png"
+        plt.savefig(vol_comparison_path, dpi=300, bbox_inches='tight')
+        if not notebook_plot: plt.close()
+        print(f"  > Saved volatility comparison to: {vol_comparison_path.name}")
+
+    # 5. Summary table
+    print("\n" + "=" * 60)
+    print("VOLATILITY ANALYSIS - SUMMARY TABLE")
+    print("=" * 60)
+
+    if volatility_results:
+        summary_data = []
+        for event_name, result in volatility_results.items():
+            summary_data.append({
+                'Company': result['company'],
+                'Event': result['event'],
+                'Pre_Volatility (%)': f"{result['pre_volatility']:.2f}",
+                'Post_Volatility (%)': f"{result['post_volatility']:.2f}",
+                'Change (%)': f"{result['volatility_change_pct']:+.1f}",
+                'F_Statistic': f"{result['f_statistic']:.3f}",
+                'P_Value': f"{result['p_value']:.4f}",
+                'Significant': 'Yes' if result['p_value'] < 0.05 else 'No'
+            })
+
+        summary_df = pd.DataFrame(summary_data)
+        print(summary_df.to_string(index=False))
+
+        summary_path = save_dir / "advanced_stock_volatility_summary.csv"
+        summary_df.to_csv(summary_path, index=False)
+        print(f"  > Saved volatility summary to: {summary_path.name}")
+
+    # Display plots in notebook if requested
+    if notebook_plot:
+        plt.show()
+
+    return volatility_results
+
+
+def cross_platform_correlation_analysis(processed_data: dict, notebook_plot=False):
+    """Advanced correlation analysis between stock returns and other data sources"""
+    print("\n[Advanced Analysis] Cross-Platform Correlation Analysis...")
+    save_dir = RESULTS_DIR / STOCK_ANALYSIS_SUBDIR
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    # 1. Extract data from processed_data dictionary
+    df_stocks = processed_data.get('stocks')
+    df_trends = processed_data.get('trends')
+    df_reddit = processed_data.get('reddit')
+
+    if df_stocks is None:
+        print("  ERROR: Stock data not available for correlation analysis")
+        return None
+
+    # 2. Prepare stock returns (daily)
+    df_stocks['NVO_Returns'] = df_stocks['NVO_Close'].pct_change() * 100
+    df_stocks['MDGL_Returns'] = df_stocks['MDGL_Close'].pct_change() * 100
+    stock_returns = df_stocks[['NVO_Returns', 'MDGL_Returns']].dropna()
+
+    correlation_results = {}
+
+    # 3. CORRELATION WITH GOOGLE TRENDS
+    if df_trends is not None:
+        print("\n" + "=" * 50)
+        print("STOCK RETURNS vs GOOGLE TRENDS CORRELATION")
+        print("=" * 50)
+
+        # Resample trends to daily and align dates
+        trends_daily = df_trends.resample('D').mean().ffill()
+
+        # Align time periods
+        start_date = max(stock_returns.index.min(), trends_daily.index.min())
+        end_date = min(stock_returns.index.max(), trends_daily.index.max())
+
+        stock_aligned = stock_returns.loc[start_date:end_date]
+        trends_aligned = trends_daily.loc[start_date:end_date]
+
+        print(f"Aligned period: {start_date.date()} to {end_date.date()} ({len(stock_aligned)} days)")
+
+        # Calculate correlations
+        trend_correlations = {}
+        for trend_col in ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']:
+            if trend_col in trends_aligned.columns:
+                nvo_corr = stock_aligned['NVO_Returns'].corr(trends_aligned[trend_col])
+                mdgl_corr = stock_aligned['MDGL_Returns'].corr(trends_aligned[trend_col])
+
+                trend_correlations[trend_col] = {
+                    'NVO_Correlation': nvo_corr,
+                    'MDGL_Correlation': mdgl_corr
+                }
+
+                print(f"{trend_col}: NVO={nvo_corr:.3f}, MDGL={mdgl_corr:.3f}")
+
+        correlation_results['google_trends'] = trend_correlations
+
+        # Plot 1: Google Trends correlation heatmap
+        plt.figure(figsize=(10, 6))
+        corr_data = []
+        for trend, corrs in trend_correlations.items():
+            corr_data.append([corrs['NVO_Correlation'], corrs['MDGL_Correlation']])
+
+        corr_df = pd.DataFrame(corr_data,
+                               index=trend_correlations.keys(),
+                               columns=['NVO Returns', 'MDGL Returns'])
+
+        sns.heatmap(corr_df, annot=True, cmap='RdBu_r', center=0,
+                    vmin=-1, vmax=1, square=True)
+        plt.title('Stock Returns vs Google Search Interest Correlation', fontweight='bold')
+        plt.tight_layout()
+
+        trends_corr_path = save_dir / "cross_platform_trends_correlation.png"
+        plt.savefig(trends_corr_path, dpi=300, bbox_inches='tight')
+        if not notebook_plot: plt.close()
+        print(f"  > Saved trends correlation to: {trends_corr_path.name}")
+
+    # 4. CORRELATION WITH REDDIT SENTIMENT
+    if df_reddit is not None and 'sentiment_score' in df_reddit.columns:
+        print("\n" + "=" * 50)
+        print("STOCK RETURNS vs REDDIT SENTIMENT CORRELATION")
+        print("=" * 50)
+
+        # Prepare Reddit sentiment (daily average)
+        df_reddit['timestamp'] = pd.to_datetime(df_reddit['timestamp'])
+        reddit_daily = df_reddit.set_index('timestamp')['sentiment_score'].resample('D').mean()
+
+        # Align time periods
+        start_date = max(stock_returns.index.min(), reddit_daily.index.min())
+        end_date = min(stock_returns.index.max(), reddit_daily.index.max())
+
+        stock_aligned = stock_returns.loc[start_date:end_date]
+        reddit_aligned = reddit_daily.loc[start_date:end_date]
+
+        print(f"Aligned period: {start_date.date()} to {end_date.date()} ({len(stock_aligned)} days)")
+
+        # Calculate correlations
+        nvo_sentiment_corr = stock_aligned['NVO_Returns'].corr(reddit_aligned)
+        mdgl_sentiment_corr = stock_aligned['MDGL_Returns'].corr(reddit_aligned)
+
+        sentiment_correlations = {
+            'NVO_Sentiment_Correlation': nvo_sentiment_corr,
+            'MDGL_Sentiment_Correlation': mdgl_sentiment_corr
+        }
+
+        correlation_results['reddit_sentiment'] = sentiment_correlations
+
+        print(f"Reddit Sentiment Correlation: NVO={nvo_sentiment_corr:.3f}, MDGL={mdgl_sentiment_corr:.3f}")
+
+        # Plot 2: Reddit sentiment correlation scatter plots
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # NVO vs Sentiment
+        ax1.scatter(reddit_aligned, stock_aligned['NVO_Returns'], alpha=0.6, s=30)
+        ax1.set_xlabel('Reddit Sentiment Score')
+        ax1.set_ylabel('NVO Daily Returns (%)')
+        ax1.set_title(f'NVO Returns vs Reddit Sentiment\n(correlation: {nvo_sentiment_corr:.3f})')
+        ax1.grid(True, alpha=0.3)
+
+        # MDGL vs Sentiment
+        ax2.scatter(reddit_aligned, stock_aligned['MDGL_Returns'], alpha=0.6, s=30, color='orange')
+        ax2.set_xlabel('Reddit Sentiment Score')
+        ax2.set_ylabel('MDGL Daily Returns (%)')
+        ax2.set_title(f'MDGL Returns vs Reddit Sentiment\n(correlation: {mdgl_sentiment_corr:.3f})')
+        ax2.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+
+        sentiment_corr_path = save_dir / "cross_platform_sentiment_correlation.png"
+        plt.savefig(sentiment_corr_path, dpi=300, bbox_inches='tight')
+        if not notebook_plot: plt.close()
+        print(f"  > Saved sentiment correlation to: {sentiment_corr_path.name}")
+
+    # 5. CORRELATION BETWEEN STOCKS
+    print("\n" + "=" * 50)
+    print("INTER-STOCK CORRELATION ANALYSIS")
+    print("=" * 50)
+
+    stock_correlation = stock_returns['NVO_Returns'].corr(stock_returns['MDGL_Returns'])
+    correlation_results['stock_correlation'] = stock_correlation
+
+    print(f"NVO vs MDGL Returns Correlation: {stock_correlation:.3f}")
+
+    # Plot 3: Stock correlation scatter plot
+    plt.figure(figsize=(8, 6))
+    plt.scatter(stock_returns['NVO_Returns'], stock_returns['MDGL_Returns'],
+                alpha=0.6, s=30, color='green')
+    plt.xlabel('NVO Daily Returns (%)')
+    plt.ylabel('MDGL Daily Returns (%)')
+    plt.title(f'NVO vs MDGL Returns Correlation\n(correlation: {stock_correlation:.3f})')
+    plt.grid(True, alpha=0.3)
+    plt.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+    plt.axvline(x=0, color='black', linestyle='-', alpha=0.3)
+    plt.tight_layout()
+
+    stock_corr_path = save_dir / "cross_platform_stock_correlation.png"
+    plt.savefig(stock_corr_path, dpi=300, bbox_inches='tight')
+    if not notebook_plot: plt.close()
+    print(f"  > Saved stock correlation to: {stock_corr_path.name}")
+
+    # 6. SUMMARY TABLE
+    print("\n" + "=" * 60)
+    print("CROSS-PLATFORM CORRELATION - SUMMARY TABLE")
+    print("=" * 60)
+
+    summary_data = []
+
+    # Add Google Trends correlations
+    if 'google_trends' in correlation_results:
+        for trend, corrs in correlation_results['google_trends'].items():
+            summary_data.append({
+                'Platform': 'Google Trends',
+                'Metric': trend,
+                'NVO_Correlation': f"{corrs['NVO_Correlation']:.3f}",
+                'MDGL_Correlation': f"{corrs['MDGL_Correlation']:.3f}"
+            })
+
+    # Add Reddit sentiment correlation
+    if 'reddit_sentiment' in correlation_results:
+        summary_data.append({
+            'Platform': 'Reddit',
+            'Metric': 'Sentiment Score',
+            'NVO_Correlation': f"{correlation_results['reddit_sentiment']['NVO_Sentiment_Correlation']:.3f}",
+            'MDGL_Correlation': f"{correlation_results['reddit_sentiment']['MDGL_Sentiment_Correlation']:.3f}"
+        })
+
+    # Add stock correlation
+    summary_data.append({
+        'Platform': 'Stocks',
+        'Metric': 'NVO vs MDGL',
+        'NVO_Correlation': f"{correlation_results['stock_correlation']:.3f}",
+        'MDGL_Correlation': f"{correlation_results['stock_correlation']:.3f}"
+    })
+
+    summary_df = pd.DataFrame(summary_data)
+    print(summary_df.to_string(index=False))
+
+    # Save summary table
+    summary_path = save_dir / "cross_platform_correlation_summary.csv"
+    summary_df.to_csv(summary_path, index=False)
+    print(f"  > Saved correlation summary to: {summary_path.name}")
+
+    # Display plots in notebook if requested
+    if notebook_plot:
+        plt.show()
+
+    return correlation_results
+
+
 def analyze_media_cloud_timeline(notebook_plot=False):
     """Create comparative timeline plot showing Media Cloud coverage trends."""
     print("\n[Analysis] Analyzing Media Cloud Timeline...")
@@ -1772,6 +2412,815 @@ def load_media_cloud_datasets():
                 datasets[dataset_name] = dataset_data
 
     return datasets
+
+
+def advanced_media_cloud_event_analysis(notebook_plot=False):
+    """Advanced statistical analysis of FDA event impacts on Media Cloud coverage - SEPARATE PLOTS"""
+    print("\n[Advanced Analysis] Media Cloud FDA Event Impact Analysis...")
+    save_dir = RESULTS_DIR / MEDIA_CLOUD_ANALYSIS_SUBDIR
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    # Load Media Cloud datasets
+    datasets = load_media_cloud_datasets()
+    if not datasets:
+        print("  ERROR: No Media Cloud datasets available")
+        return None
+
+    from scipy import stats
+    import numpy as np
+
+    # FDA event dates
+    resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
+    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+
+    results = {}
+
+    for dataset_name, data in datasets.items():
+        if 'counts' not in data:
+            continue
+
+        print(f"\n--- Analyzing {dataset_name} dataset ---")
+        df = data['counts'].copy()
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.set_index('date').sort_index()
+
+        # Define event windows (60 days pre/post each event)
+        event_analyses = {}
+
+        for event_name, event_date in [('Resmetirom Approval', resmetirom_date),
+                                       ('GLP-1 Approval', glp1_date)]:
+
+            # Skip if event is outside data range
+            if event_date < df.index.min() or event_date > df.index.max():
+                continue
+
+            # Define analysis windows
+            pre_window = df[(df.index >= event_date - pd.Timedelta(days=60)) &
+                            (df.index < event_date)]
+            post_window = df[(df.index > event_date) &
+                             (df.index <= event_date + pd.Timedelta(days=60))]
+
+            if len(pre_window) > 10 and len(post_window) > 10:
+                # Statistical test
+                t_stat, p_value = stats.ttest_ind(pre_window['count'],
+                                                  post_window['count'],
+                                                  equal_var=False)
+
+                # Calculate effect size
+                pre_mean = pre_window['count'].mean()
+                post_mean = post_window['count'].mean()
+                cohens_d = (post_mean - pre_mean) / np.sqrt(
+                    (pre_window['count'].var() + post_window['count'].var()) / 2
+                )
+
+                event_analyses[event_name] = {
+                    't_statistic': t_stat,
+                    'p_value': p_value,
+                    'pre_mean': pre_mean,
+                    'post_mean': post_mean,
+                    'absolute_change': post_mean - pre_mean,
+                    'percent_change': ((post_mean - pre_mean) / pre_mean) * 100,
+                    'cohens_d': cohens_d,
+                    'pre_obs': len(pre_window),
+                    'post_obs': len(post_window)
+                }
+
+                print(f"  {event_name}:")
+                print(f"    Pre-event: {pre_mean:.2f} articles/day")
+                print(f"    Post-event: {post_mean:.2f} articles/day")
+                print(f"    Change: {post_mean - pre_mean:+.2f} ({((post_mean - pre_mean) / pre_mean) * 100:+.1f}%)")
+                print(f"    T-statistic: {t_stat:.3f}, p-value: {p_value:.4f}")
+                print(f"    Cohen's d: {cohens_d:.3f} {'(significant)' if p_value < 0.05 else ''}")
+
+        results[dataset_name] = event_analyses
+
+    # PLOT 1: Event impact comparison (BAR CHART)
+    plt.figure(figsize=(12, 6))
+    plot_data = []
+    for dataset_name, events in results.items():
+        for event_name, stats_data in events.items():
+            plot_data.append({
+                'Dataset': dataset_name,
+                'Event': event_name,
+                'Percent_Change': stats_data['percent_change'],
+                'P_Value': stats_data['p_value'],
+                'Effect_Size': stats_data['cohens_d']
+            })
+
+    if plot_data:
+        plot_df = pd.DataFrame(plot_data)
+
+        # Create bar plot with significance markers
+        datasets_ordered = ['disease', 'resmetirom', 'glp1']
+        events_ordered = ['Resmetirom Approval', 'GLP-1 Approval']
+
+        x_pos = np.arange(len(datasets_ordered))
+        width = 0.35
+
+        for i, event in enumerate(events_ordered):
+            event_data = plot_df[plot_df['Event'] == event]
+            values = [event_data[event_data['Dataset'] == dataset]['Percent_Change'].iloc[0]
+                      if ((event_data['Dataset'] == dataset).any()) else 0
+                      for dataset in datasets_ordered]
+
+            bars = plt.bar(x_pos + i * width, values, width,
+                           label=event, alpha=0.7,
+                           color=MEDIA_CLOUD_COLORS.get(event.split()[0].lower(), 'gray'))
+
+            # Add significance markers and value labels
+            for j, (bar, dataset) in enumerate(zip(bars, datasets_ordered)):
+                if ((event_data['Dataset'] == dataset).any()):
+                    p_val = event_data[event_data['Dataset'] == dataset]['P_Value'].iloc[0]
+                    height = bar.get_height()
+                    # Significance marker
+                    if p_val < 0.05:
+                        plt.text(bar.get_x() + bar.get_width() / 2, height + (10 if height >= 0 else -15),
+                                 '*', ha='center', va='bottom' if height >= 0 else 'top',
+                                 fontsize=20, fontweight='bold', color='red')
+                    # Value label
+                    plt.text(bar.get_x() + bar.get_width() / 2, height + (5 if height >= 0 else -10),
+                             f'{height:+.1f}%', ha='center', va='bottom' if height >= 0 else 'top',
+                             fontsize=9, fontweight='bold')
+
+        plt.xlabel('Media Cloud Dataset')
+        plt.ylabel('Percent Change in Coverage (%)')
+        plt.title('FDA Approval Impact on Media Coverage\n(* = statistically significant)', fontweight='bold')
+        plt.xticks(x_pos + width / 2, [d.title() for d in datasets_ordered])
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.axhline(y=0, color='black', linestyle='-', alpha=0.5)
+
+    plt.tight_layout()
+    save_path1 = save_dir / "media_cloud_event_impact_barchart.png"
+    plt.savefig(save_path1, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved event impact bar chart to: {save_path1.name}")
+
+    # PLOT 2: Time series with event markers
+    plt.figure(figsize=(12, 6))
+    for dataset_name, data in datasets.items():
+        if 'counts' in data:
+            df = data['counts'].copy()
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.set_index('date').sort_index()
+
+            # 7-day moving average for smoother trends
+            rolling_avg = df['count'].rolling(window=7, center=True).mean()
+            plt.plot(rolling_avg.index, rolling_avg.values,
+                     label=dataset_name.title(), linewidth=2,
+                     color=MEDIA_CLOUD_COLORS.get(dataset_name))
+
+    # Add FDA event lines
+    plt.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, linewidth=2, label='Resmetirom Approval')
+    plt.axvline(glp1_date, color='blue', linestyle='--', alpha=0.7, linewidth=2, label='GLP-1 Approval')
+    plt.xlabel('Date')
+    plt.ylabel('7-Day Moving Average (Articles)')
+    plt.title('Media Coverage Trends with FDA Events', fontweight='bold')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    save_path2 = save_dir / "media_cloud_timeseries_trends.png"
+    plt.savefig(save_path2, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved time series trends to: {save_path2.name}")
+
+    # PLOT 3: Effect sizes
+    plt.figure(figsize=(10, 6))
+    if plot_data:
+        effect_df = pd.DataFrame(plot_data)
+        effect_data = []
+        for _, row in effect_df.iterrows():
+            effect_data.append({
+                'Comparison': f"{row['Dataset']}\n{row['Event'].split()[0]}",
+                'Cohens_d': row['Effect_Size'],
+                'P_Value': row['P_Value']
+            })
+
+        effect_plot_df = pd.DataFrame(effect_data)
+        colors = ['lightcoral' if p < 0.05 else 'lightblue' for p in effect_plot_df['P_Value']]
+        bars = plt.barh(effect_plot_df['Comparison'], effect_plot_df['Cohens_d'],
+                        alpha=0.7, color=colors)
+
+        # Add value labels
+        for i, (bar, effect_size) in enumerate(zip(bars, effect_plot_df['Cohens_d'])):
+            plt.text(bar.get_width() + (0.02 if effect_size >= 0 else -0.05),
+                     bar.get_y() + bar.get_height() / 2,
+                     f'{effect_size:.3f}', ha='left' if effect_size >= 0 else 'right',
+                     va='center', fontweight='bold')
+
+        plt.xlabel("Cohen's d (Effect Size)")
+        plt.title('Effect Sizes of FDA Approval Impacts\n(Red = statistically significant)', fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.axvline(x=0, color='black', linestyle='-', alpha=0.5)
+
+    plt.tight_layout()
+    save_path3 = save_dir / "media_cloud_effect_sizes.png"
+    plt.savefig(save_path3, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved effect sizes to: {save_path3.name}")
+
+    # PLOT 4: Statistical summary table
+    plt.figure(figsize=(12, 4))
+    plt.axis('off')
+    if plot_data:
+        summary_data = []
+        for dataset_name, events in results.items():
+            for event_name, stats_data in events.items():
+                summary_data.append({
+                    'Dataset': dataset_name.title(),
+                    'Event': event_name.split()[0],
+                    'Pre_Mean': f"{stats_data['pre_mean']:.2f}",
+                    'Post_Mean': f"{stats_data['post_mean']:.2f}",
+                    'Change': f"{stats_data['absolute_change']:+.2f}",
+                    'P_Value': f"{stats_data['p_value']:.4f}",
+                    'Sig': '*' if stats_data['p_value'] < 0.05 else ''
+                })
+
+        summary_df = pd.DataFrame(summary_data)
+        if not summary_df.empty:
+            table = plt.table(cellText=summary_df.values,
+                              colLabels=summary_df.columns,
+                              cellLoc='center',
+                              loc='center',
+                              bbox=[0.1, 0.2, 0.8, 0.6])
+            table.auto_set_font_size(False)
+            table.set_fontsize(10)
+            table.scale(1, 1.8)
+            plt.title('Media Cloud FDA Event Impact - Statistical Summary', fontweight='bold', pad=20)
+
+    plt.tight_layout()
+    save_path4 = save_dir / "media_cloud_statistical_summary.png"
+    plt.savefig(save_path4, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved statistical summary to: {save_path4.name}")
+
+    # Save results to CSV
+    results_path = save_dir / "media_cloud_event_analysis_results.csv"
+    flat_results = []
+    for dataset_name, events in results.items():
+        for event_name, stats_data in events.items():
+            flat_results.append({
+                'dataset': dataset_name,
+                'event': event_name,
+                **stats_data
+            })
+
+    if flat_results:
+        results_df = pd.DataFrame(flat_results)
+        results_df.to_csv(results_path, index=False)
+        print(f"  > Saved detailed results to: {results_path.name}")
+
+    return results
+
+
+def advanced_media_cloud_concentration_analysis(notebook_plot=False):
+    """Advanced analysis of media coverage concentration using Gini coefficient and HHI"""
+    print("\n[Advanced Analysis] Media Cloud Coverage Concentration Analysis...")
+    save_dir = RESULTS_DIR / MEDIA_CLOUD_ANALYSIS_SUBDIR
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    # Load Media Cloud datasets
+    datasets = load_media_cloud_datasets()
+    if not datasets:
+        print("  ERROR: No Media Cloud datasets available")
+        return None
+
+    import numpy as np
+    from scipy import stats
+
+    concentration_results = {}
+
+    for dataset_name, data in datasets.items():
+        if 'sources' not in data:
+            continue
+
+        print(f"\n--- Analyzing concentration for {dataset_name} dataset ---")
+        sources_df = data['sources'].copy()
+
+        # Calculate concentration metrics
+        total_articles = sources_df['count'].sum()
+        n_sources = len(sources_df)
+
+        # Gini coefficient calculation
+        sorted_counts = np.sort(sources_df['count'])
+        cum_share = np.cumsum(sorted_counts) / total_articles
+        n = len(sorted_counts)
+        gini = 1 - 2 * np.trapz(cum_share, dx=1 / n)
+
+        # Herfindahl-Hirschman Index (HHI)
+        market_shares = sources_df['count'] / total_articles
+        hhi = np.sum(market_shares ** 2) * 10000  # Scale to 0-10000
+
+        # Top 5 concentration
+        top5_share = sources_df.nlargest(5, 'count')['count'].sum() / total_articles * 100
+        top10_share = sources_df.nlargest(10, 'count')['count'].sum() / total_articles * 100
+
+        concentration_results[dataset_name] = {
+            'gini_coefficient': gini,
+            'hhi': hhi,
+            'total_articles': total_articles,
+            'n_sources': n_sources,
+            'top5_share': top5_share,
+            'top10_share': top10_share,
+            'avg_articles_per_source': total_articles / n_sources,
+            'dominant_source': sources_df.iloc[0]['source'],
+            'dominant_share': (sources_df.iloc[0]['count'] / total_articles) * 100
+        }
+
+        print(f"  Gini Coefficient: {gini:.3f}")
+        print(f"  HHI: {hhi:.0f}")
+        print(f"  Top 5 Sources: {top5_share:.1f}% of coverage")
+        print(f"  Top 10 Sources: {top10_share:.1f}% of coverage")
+        print(
+            f"  Dominant Source: {sources_df.iloc[0]['source']} ({concentration_results[dataset_name]['dominant_share']:.1f}%)")
+        print(f"  Total Sources: {n_sources}, Total Articles: {total_articles}")
+
+    # Statistical comparison between datasets
+    print("\n--- Statistical Comparison Between Datasets ---")
+    datasets_list = list(concentration_results.keys())
+
+    for i in range(len(datasets_list)):
+        for j in range(i + 1, len(datasets_list)):
+            dataset1 = datasets_list[i]
+            dataset2 = datasets_list[j]
+
+            # Compare Gini coefficients (approximate using source count distributions)
+            sources1 = datasets[dataset1]['sources']['count']
+            sources2 = datasets[dataset2]['sources']['count']
+
+            # Mann-Whitney U test for distribution differences
+            stat, p_value = stats.mannwhitneyu(sources1, sources2, alternative='two-sided')
+
+            print(f"  {dataset1} vs {dataset2}:")
+            print(
+                f"    Gini: {concentration_results[dataset1]['gini_coefficient']:.3f} vs {concentration_results[dataset2]['gini_coefficient']:.3f}")
+            print(f"    Distribution p-value: {p_value:.4f}")
+
+    # Create visualizations
+
+    # PLOT 1: Concentration metrics comparison
+    plt.figure(figsize=(12, 8))
+
+    # Subplot 1: Gini coefficients
+    plt.subplot(2, 2, 1)
+    gini_values = [concentration_results[d]['gini_coefficient'] for d in datasets_list]
+    bars = plt.bar(datasets_list, gini_values, color=[MEDIA_CLOUD_COLORS.get(d, 'gray') for d in datasets_list],
+                   alpha=0.7)
+    plt.ylabel('Gini Coefficient')
+    plt.title('Media Coverage Concentration\n(Gini Coefficient)', fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    # Add value labels
+    for bar, value in zip(bars, gini_values):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01, f'{value:.3f}',
+                 ha='center', va='bottom', fontweight='bold')
+
+    # Subplot 2: HHI
+    plt.subplot(2, 2, 2)
+    hhi_values = [concentration_results[d]['hhi'] for d in datasets_list]
+    bars = plt.bar(datasets_list, hhi_values, color=[MEDIA_CLOUD_COLORS.get(d, 'gray') for d in datasets_list],
+                   alpha=0.7)
+    plt.ylabel('HHI (0-10000 scale)')
+    plt.title('Herfindahl-Hirschman Index', fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    # Add value labels
+    for bar, value in zip(bars, hhi_values):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 50, f'{value:.0f}',
+                 ha='center', va='bottom', fontweight='bold')
+
+    # Subplot 3: Top 5 concentration
+    plt.subplot(2, 2, 3)
+    top5_values = [concentration_results[d]['top5_share'] for d in datasets_list]
+    bars = plt.bar(datasets_list, top5_values, color=[MEDIA_CLOUD_COLORS.get(d, 'gray') for d in datasets_list],
+                   alpha=0.7)
+    plt.ylabel('Percentage of Coverage (%)')
+    plt.title('Top 5 Sources Share of Coverage', fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    # Add value labels
+    for bar, value in zip(bars, top5_values):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1, f'{value:.1f}%',
+                 ha='center', va='bottom', fontweight='bold')
+
+    # Subplot 4: Source distribution Lorenz curves
+    plt.subplot(2, 2, 4)
+    for dataset_name in datasets_list:
+        sources_df = datasets[dataset_name]['sources'].copy()
+        sorted_counts = np.sort(sources_df['count'])
+        cum_articles = np.cumsum(sorted_counts) / sorted_counts.sum()
+        cum_sources = np.arange(1, len(sorted_counts) + 1) / len(sorted_counts)
+
+        plt.plot(cum_sources, cum_articles, label=dataset_name.title(),
+                 linewidth=2, color=MEDIA_CLOUD_COLORS.get(dataset_name))
+
+    # Perfect equality line
+    plt.plot([0, 1], [0, 1], 'k--', alpha=0.5, label='Perfect Equality')
+    plt.xlabel('Cumulative Share of Sources')
+    plt.ylabel('Cumulative Share of Articles')
+    plt.title('Lorenz Curves: Coverage Distribution', fontweight='bold')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    save_path1 = save_dir / "media_cloud_concentration_metrics.png"
+    plt.savefig(save_path1, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved concentration metrics to: {save_path1.name}")
+
+    # PLOT 2: Source network and dominance
+    plt.figure(figsize=(14, 6))
+
+    # Subplot 1: Top sources across datasets
+    plt.subplot(1, 2, 1)
+    top_n = 10
+    for dataset_name in datasets_list:
+        sources_df = datasets[dataset_name]['sources'].nlargest(top_n, 'count')
+        plt.barh([f"{s}_{dataset_name}" for s in sources_df['source']],
+                 sources_df['count'], alpha=0.7, label=dataset_name.title(),
+                 color=MEDIA_CLOUD_COLORS.get(dataset_name))
+
+    plt.xlabel('Number of Articles')
+    plt.title(f'Top {top_n} Sources by Dataset', fontweight='bold')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    # Subplot 2: Source overlap analysis
+    plt.subplot(1, 2, 2)
+    # Calculate Jaccard similarities between source sets
+    similarity_matrix = np.zeros((len(datasets_list), len(datasets_list)))
+    source_sets = {name: set(datasets[name]['sources']['source']) for name in datasets_list}
+
+    for i, name1 in enumerate(datasets_list):
+        for j, name2 in enumerate(datasets_list):
+            intersection = len(source_sets[name1].intersection(source_sets[name2]))
+            union = len(source_sets[name1].union(source_sets[name2]))
+            similarity_matrix[i, j] = intersection / union if union > 0 else 0
+
+    im = plt.imshow(similarity_matrix, cmap='YlOrRd', vmin=0, vmax=1)
+    plt.xticks(range(len(datasets_list)), [d.title() for d in datasets_list])
+    plt.yticks(range(len(datasets_list)), [d.title() for d in datasets_list])
+    plt.title('Source Overlap: Jaccard Similarity', fontweight='bold')
+
+    # Add similarity values as text
+    for i in range(len(datasets_list)):
+        for j in range(len(datasets_list)):
+            plt.text(j, i, f'{similarity_matrix[i, j]:.2f}',
+                     ha='center', va='center', fontweight='bold',
+                     color='white' if similarity_matrix[i, j] > 0.5 else 'black')
+
+    plt.colorbar(im, label='Jaccard Similarity')
+
+    plt.tight_layout()
+    save_path2 = save_dir / "media_cloud_source_analysis.png"
+    plt.savefig(save_path2, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved source analysis to: {save_path2.name}")
+
+    # Save results to CSV
+    results_path = save_dir / "media_cloud_concentration_results.csv"
+    results_df = pd.DataFrame.from_dict(concentration_results, orient='index')
+    results_df.to_csv(results_path, index=True)
+    print(f"  > Saved concentration results to: {results_path.name}")
+
+    return concentration_results
+
+
+def advanced_media_cloud_topic_propagation(notebook_plot=False):
+    """Advanced analysis of topic propagation and Granger causality between coverage types"""
+    print("\n[Advanced Analysis] Media Cloud Topic Propagation Analysis...")
+    save_dir = RESULTS_DIR / MEDIA_CLOUD_ANALYSIS_SUBDIR
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    # Load Media Cloud datasets
+    datasets = load_media_cloud_datasets()
+    if not datasets:
+        print("  ERROR: No Media Cloud datasets available")
+        return None
+
+    import numpy as np
+    from scipy import stats
+    from statsmodels.tsa.stattools import grangercausalitytests
+
+    # Prepare time series data
+    print("\n--- Preparing Time Series Data ---")
+    time_series_data = {}
+
+    for dataset_name, data in datasets.items():
+        if 'counts' not in data:
+            continue
+
+        df = data['counts'].copy()
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.set_index('date').sort_index()
+
+        # Create weekly time series to reduce noise
+        weekly_series = df['count'].resample('W').sum()
+
+        # Handle zeros by adding small constant for log transformation
+        weekly_series = weekly_series.replace(0, 0.1)
+
+        time_series_data[dataset_name] = weekly_series
+        print(f"  {dataset_name}: {len(weekly_series)} weeks, mean: {weekly_series.mean():.1f} articles/week")
+
+    if len(time_series_data) < 2:
+        print("  ERROR: Insufficient datasets for propagation analysis")
+        return None
+
+    # Align all time series to common date range
+    common_index = time_series_data['disease'].index.intersection(
+        time_series_data['resmetirom'].index
+    ).intersection(time_series_data['glp1'].index)
+
+    aligned_series = {}
+    for name, series in time_series_data.items():
+        aligned_series[name] = series.loc[common_index]
+
+    print(f"  Common time period: {len(common_index)} weeks")
+    print(f"  Date range: {common_index.min().strftime('%Y-%m-%d')} to {common_index.max().strftime('%Y-%m-%d')}")
+
+    # Correlation analysis with time lags
+    print("\n--- Time-Lagged Correlation Analysis ---")
+    max_lag = 8  # weeks
+    lag_results = {}
+
+    for target in ['resmetirom', 'glp1']:
+        for predictor in ['disease', 'glp1', 'resmetirom']:
+            if target == predictor:
+                continue
+
+            target_series = aligned_series[target]
+            predictor_series = aligned_series[predictor]
+
+            lag_correlations = []
+            for lag in range(max_lag + 1):
+                if lag == 0:
+                    # Concurrent correlation
+                    corr = target_series.corr(predictor_series)
+                else:
+                    # Lagged correlation (predictor leads target)
+                    corr = target_series.corr(predictor_series.shift(lag))
+
+                lag_correlations.append({
+                    'lag': lag,
+                    'correlation': corr,
+                    'predictor': predictor,
+                    'target': target
+                })
+
+            lag_results[f"{predictor}_to_{target}"] = lag_correlations
+
+            # Find optimal lag
+            optimal_lag = max(range(len(lag_correlations)),
+                              key=lambda i: abs(lag_correlations[i]['correlation']))
+            optimal_corr = lag_correlations[optimal_lag]['correlation']
+
+            print(f"  {predictor} -> {target}:")
+            print(f"    Optimal lag: {optimal_lag} weeks, correlation: {optimal_corr:.3f}")
+            if optimal_lag > 0:
+                direction = "LEADS" if optimal_corr > 0 else "PRECEDES_NEGATIVE"
+                print(f"    Interpretation: {predictor} {direction} {target} by {optimal_lag} weeks")
+
+    # Granger causality tests
+    print("\n--- Granger Causality Tests ---")
+    granger_results = {}
+
+    # Test disease -> drug causality
+    test_pairs = [
+        ('disease', 'resmetirom', 'Disease awareness drives Resmetirom coverage'),
+        ('disease', 'glp1', 'Disease awareness drives GLP-1 coverage'),
+        ('resmetirom', 'glp1', 'Resmetirom coverage drives GLP-1 coverage'),
+        ('glp1', 'resmetirom', 'GLP-1 coverage drives Resmetirom coverage')
+    ]
+
+    for predictor, target, hypothesis in test_pairs:
+        if predictor not in aligned_series or target not in aligned_series:
+            continue
+
+        # Prepare data for Granger test
+        combined_data = np.column_stack([aligned_series[target].values,
+                                         aligned_series[predictor].values])
+
+        try:
+            # Test with 4-week lags (1 month)
+            gc_test = grangercausalitytests(combined_data, maxlag=4, verbose=False)
+
+            # Extract p-values for each lag
+            p_values = {}
+            for lag in range(1, 5):
+                p_value = gc_test[lag][0]['ssr_ftest'][1]
+                p_values[f'lag_{lag}'] = p_value
+
+            granger_results[f"{predictor}_to_{target}"] = {
+                'hypothesis': hypothesis,
+                'p_values': p_values,
+                'min_p_value': min(p_values.values()),
+                'significant': any(p < 0.05 for p in p_values.values())
+            }
+
+            print(f"  {predictor} -> {target}:")
+            print(f"    Hypothesis: {hypothesis}")
+            print(f"    Minimum p-value: {min(p_values.values()):.4f}")
+            print(f"    Significant: {'YES' if granger_results[f'{predictor}_to_{target}']['significant'] else 'NO'}")
+            if granger_results[f'{predictor}_to_{target}']['significant']:
+                significant_lags = [lag for lag, p in p_values.items() if p < 0.05]
+                print(f"    Significant at lags: {significant_lags}")
+
+        except Exception as e:
+            print(f"  {predictor} -> {target}: Granger test failed - {e}")
+
+    # Create visualizations
+
+    # PLOT 1: Time-lagged correlation heatmaps
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+
+    # Heatmap 1: Disease as predictor
+    predictor_data = []
+    target_pairs = [('resmetirom', 'Disease -> Resmetirom'),
+                    ('glp1', 'Disease -> GLP-1')]
+
+    for i, (target, title) in enumerate(target_pairs):
+        key = f"disease_to_{target}"
+        if key in lag_results:
+            corrs = [x['correlation'] for x in lag_results[key]]
+            predictor_data.append(corrs)
+
+            im = axes[0, i].imshow([corrs], cmap='RdBu_r', aspect='auto',
+                                   vmin=-0.6, vmax=0.6, extent=[0, max_lag, 0, 1])
+            axes[0, i].set_xlabel('Lag (Weeks)')
+            axes[0, i].set_title(f'{title}\nTime-Lagged Correlation', fontweight='bold')
+            axes[0, i].set_yticks([])
+
+            # Add correlation values
+            for lag, corr in enumerate(corrs):
+                color = 'white' if abs(corr) > 0.3 else 'black'
+                axes[0, i].text(lag + 0.5, 0.5, f'{corr:.2f}',
+                                ha='center', va='center', fontweight='bold', color=color)
+
+    # Heatmap 2: Cross-drug predictions
+    cross_pairs = [('resmetirom_to_glp1', 'Resmetirom -> GLP-1'),
+                   ('glp1_to_resmetirom', 'GLP-1 -> Resmetirom')]
+
+    for i, (key, title) in enumerate(cross_pairs):
+        if key in lag_results:
+            corrs = [x['correlation'] for x in lag_results[key]]
+
+            im = axes[1, i].imshow([corrs], cmap='RdBu_r', aspect='auto',
+                                   vmin=-0.6, vmax=0.6, extent=[0, max_lag, 0, 1])
+            axes[1, i].set_xlabel('Lag (Weeks)')
+            axes[1, i].set_title(f'{title}\nTime-Lagged Correlation', fontweight='bold')
+            axes[1, i].set_yticks([])
+
+            # Add correlation values
+            for lag, corr in enumerate(corrs):
+                color = 'white' if abs(corr) > 0.3 else 'black'
+                axes[1, i].text(lag + 0.5, 0.5, f'{corr:.2f}',
+                                ha='center', va='center', fontweight='bold', color=color)
+
+    plt.tight_layout()
+    save_path1 = save_dir / "media_cloud_lagged_correlations.png"
+    plt.savefig(save_path1, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved lagged correlations to: {save_path1.name}")
+
+    # PLOT 2: Time series comparison with leading indicators
+    plt.figure(figsize=(14, 10))
+
+    # Normalize series for comparison
+    normalized_series = {}
+    for name, series in aligned_series.items():
+        normalized_series[name] = (series - series.mean()) / series.std()
+
+    # Plot normalized time series
+    plt.subplot(2, 1, 1)
+    for name, series in normalized_series.items():
+        plt.plot(series.index, series.values, label=name.title(),
+                 linewidth=2, color=MEDIA_CLOUD_COLORS.get(name))
+
+    plt.ylabel('Normalized Coverage (Z-score)')
+    plt.title('Media Coverage Trends (Normalized)', fontweight='bold')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    # Add FDA event lines
+    resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
+    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    plt.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, label='Resmetirom Approval')
+    plt.axvline(glp1_date, color='blue', linestyle='--', alpha=0.7, label='GLP-1 Approval')
+
+    # Plot 2: Granger causality results
+    plt.subplot(2, 1, 2)
+    if granger_results:
+        test_names = []
+        min_p_values = []
+        colors = []
+
+        for key, result in granger_results.items():
+            test_names.append(key.replace('_to_', ' ->\n'))
+            min_p_values.append(result['min_p_value'])
+            colors.append('lightcoral' if result['significant'] else 'lightblue')
+
+        bars = plt.barh(test_names, min_p_values, color=colors, alpha=0.7)
+        plt.xscale('log')
+        plt.xlabel('Minimum P-value (Log Scale)')
+        plt.title('Granger Causality Tests\n(Red = Significant Predictive Relationship)', fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.axvline(x=0.05, color='red', linestyle='--', alpha=0.5, label='p=0.05 significance threshold')
+
+        # Add value labels
+        for bar, p_val in zip(bars, min_p_values):
+            plt.text(bar.get_width() * 1.1, bar.get_y() + bar.get_height() / 2,
+                     f'p={p_val:.4f}', va='center', fontweight='bold')
+
+        plt.legend()
+
+    plt.tight_layout()
+    save_path2 = save_dir / "media_cloud_granger_causality.png"
+    plt.savefig(save_path2, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved Granger causality results to: {save_path2.name}")
+
+    # PLOT 3: Optimal lag summary
+    plt.figure(figsize=(10, 6))
+
+    optimal_lags_data = []
+    for key, lags in lag_results.items():
+        optimal_lag = max(range(len(lags)), key=lambda i: abs(lags[i]['correlation']))
+        optimal_corr = lags[optimal_lag]['correlation']
+        optimal_lags_data.append({
+            'relationship': key.replace('_to_', ' → '),
+            'optimal_lag': optimal_lag,
+            'correlation': optimal_corr,
+            'abs_correlation': abs(optimal_corr)
+        })
+
+    if optimal_lags_data:
+        plot_df = pd.DataFrame(optimal_lags_data)
+
+        # Create bubble chart
+        scatter = plt.scatter(plot_df['optimal_lag'], plot_df['correlation'],
+                              s=plot_df['abs_correlation'] * 500, alpha=0.6,
+                              c=plot_df['correlation'], cmap='RdBu_r', vmin=-0.6, vmax=0.6)
+
+        # Add labels
+        for i, row in plot_df.iterrows():
+            plt.annotate(row['relationship'],
+                         (row['optimal_lag'], row['correlation']),
+                         xytext=(5, 5), textcoords='offset points',
+                         fontsize=9, fontweight='bold')
+
+        plt.xlabel('Optimal Lag (Weeks)')
+        plt.ylabel('Correlation at Optimal Lag')
+        plt.title('Topic Propagation: Optimal Lags and Correlation Strength', fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.axhline(y=0, color='black', linestyle='-', alpha=0.5)
+
+        # Add correlation strength interpretation
+        plt.axhspan(-0.3, 0.3, alpha=0.1, color='gray', label='Weak correlation')
+        plt.axhspan(0.3, 0.6, alpha=0.1, color='blue', label='Moderate positive')
+        plt.axhspan(-0.6, -0.3, alpha=0.1, color='red', label='Moderate negative')
+
+        plt.colorbar(scatter, label='Correlation Strength')
+        plt.legend()
+
+    plt.tight_layout()
+    save_path3 = save_dir / "media_cloud_optimal_lags.png"
+    plt.savefig(save_path3, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"  > Saved optimal lags analysis to: {save_path3.name}")
+
+    # Save results to CSV
+    results_path = save_dir / "media_cloud_propagation_results.csv"
+
+    # Flatten results for saving
+    flat_results = []
+    for key, lags in lag_results.items():
+        for lag_data in lags:
+            flat_results.append({
+                'relationship': key,
+                'lag_weeks': lag_data['lag'],
+                'correlation': lag_data['correlation'],
+                'predictor': lag_data['predictor'],
+                'target': lag_data['target']
+            })
+
+    for key, result in granger_results.items():
+        flat_results.append({
+            'relationship': f"granger_{key}",
+            'lag_weeks': 'multiple',
+            'correlation': result['min_p_value'],
+            'predictor': 'granger_test',
+            'target': f"significant_{result['significant']}"
+        })
+
+    if flat_results:
+        results_df = pd.DataFrame(flat_results)
+        results_df.to_csv(results_path, index=False)
+        print(f"  > Saved propagation results to: {results_path.name}")
+
+    return {
+        'lag_results': lag_results,
+        'granger_results': granger_results,
+        'time_series_data': aligned_series
+    }
 
 
 def run_all_analysis(processed_data: dict):
