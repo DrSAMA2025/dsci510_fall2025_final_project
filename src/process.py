@@ -138,7 +138,8 @@ def process_reddit_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=['timestamp'])
 
     print(f"  > Reddit data with sentiment ready. Shape: {df.shape}")
-    return df[['subreddit', 'search_term', 'timestamp', 'type', 'sentiment_score', 'sentiment_category']]
+    # Keep all columns including text data for later analyses
+    return df
 
 
 def process_pubmed_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -193,7 +194,7 @@ def run_all_data_processors():
         processed_data['stocks'] = process_stock_data(df_stocks_raw)
 
     # 3. Reddit Data (Timestamped file)
-    df_reddit_raw = load_data(REDDIT_DATA_FILE_BASE, is_timestamped=True)
+    df_reddit_raw = load_data("reddit_data_latest.csv", is_timestamped=False)
     if df_reddit_raw is not None:
         processed_data['reddit'] = process_reddit_data(df_reddit_raw)
 

@@ -26,37 +26,6 @@ try:
     from analyze import run_all_analysis
     from tests import run_all_tests
 
-    # Import individual analysis scripts with error handling
-    try:
-        from google_trends_analysis import main as run_google_trends_analysis
-    except ImportError:
-        run_google_trends_analysis = None
-        print("Warning: google_trends_analysis module not available")
-
-    try:
-        from stock_analysis import analyze_stock_impact as run_stock_analysis
-    except ImportError:
-        run_stock_analysis = None
-        print("Warning: stock_analysis module not available")
-
-    try:
-        from reddit_sentiment_analysis import main as run_reddit_analysis
-    except ImportError:
-        run_reddit_analysis = None
-        print("Warning: reddit_sentiment_analysis module not available")
-
-    try:
-        from pubmed_analysis import main as run_pubmed_analysis
-    except ImportError:
-        run_pubmed_analysis = None
-        print("Warning: pubmed_analysis module not available")
-
-    try:
-        from media_cloud_analysis import main as run_media_cloud_analysis
-    except ImportError:
-        run_media_cloud_analysis = None
-        print("Warning: media_cloud_analysis module not available")
-
     # Import configuration
     from config import (
         DATA_DIR, RESULTS_DIR,
@@ -167,35 +136,47 @@ class MASLDAnalysisPipeline:
             return False
 
     def run_detailed_analyses(self):
-        """Run detailed individual analyses."""
+        """Run detailed individual analyses using analyze.py functions"""
+        from analyze import (
+            advanced_google_trends_analysis,
+            analyze_temporal_patterns,
+            analyze_reddit_topics,
+            correlate_reddit_trends,
+            analyze_subreddit_networks
+        )
+
         analyses = [
-            ("GOOGLE TRENDS", run_google_trends_analysis),
-            ("STOCK ANALYSIS", run_stock_analysis),
-            ("REDDIT SENTIMENT", run_reddit_analysis),
-            ("PUBMED ANALYSIS", run_pubmed_analysis),
-            ("MEDIA CLOUD", run_media_cloud_analysis)
+            ("GOOGLE TRENDS ADVANCED",
+             lambda: advanced_google_trends_analysis(self.processed_data.get('trends'), notebook_plot=False)),
+            ("REDDIT TEMPORAL PATTERNS",
+             lambda: analyze_temporal_patterns(self.processed_data.get('reddit'), notebook_plot=False)),
+            ("REDDIT TOPIC MODELING",
+             lambda: analyze_reddit_topics(self.processed_data.get('reddit'), notebook_plot=False)),
+            ("REDDIT-TRENDS CORRELATION",
+             lambda: correlate_reddit_trends(self.processed_data.get('reddit'), self.processed_data.get('trends'),
+                                             notebook_plot=False)),
+            ("REDDIT NETWORK ANALYSIS",
+             lambda: analyze_subreddit_networks(self.processed_data.get('reddit'), notebook_plot=False))
         ]
 
         for analysis_name, analysis_func in analyses:
             self.log_step(analysis_name, "STARTING")
             try:
-                analysis_func()
+                # Check if required data is available
+                if analysis_name == "REDDIT-TRENDS CORRELATION":
+                    if 'reddit' in self.processed_data and 'trends' in self.processed_data:
+                        analysis_func()
+                    else:
+                        self.log_step(analysis_name, "SKIPPED", "Required data not available")
+                else:
+                    # All other analyses need reddit data
+                    if 'reddit' in self.processed_data:
+                        analysis_func()
+                    else:
+                        self.log_step(analysis_name, "SKIPPED", "Reddit data not available")
                 self.log_step(analysis_name, "COMPLETED")
             except Exception as e:
                 self.log_step(analysis_name, "FAILED", str(e))
-
-    def generate_cross_platform_insights(self):
-        """Generate insights across all data platforms."""
-        self.log_step("CROSS-PLATFORM INSIGHTS", "STARTING")
-        try:
-            # This would combine findings from all analyses
-            insights = self._generate_combined_insights()
-            self._save_insights_report(insights)
-            self.log_step("CROSS-PLATFORM INSIGHTS", "COMPLETED", "Combined report generated")
-            return True
-        except Exception as e:
-            self.log_step("CROSS-PLATFORM INSIGHTS", "FAILED", str(e))
-            return False
 
     def _generate_combined_insights(self):
         """Generate combined insights from all data sources."""
@@ -297,7 +278,7 @@ def main():
         pipeline.run_detailed_analyses()
 
         # 5. Generate cross-platform insights
-        pipeline.generate_cross_platform_insights()
+        pipeline._generate_combined_insights()
 
         # 6. Print summary
         pipeline.print_summary()

@@ -1,6 +1,7 @@
 # Core Data Manipulation and Analysis
 pandas>=2.0.0
 numpy>=1.24.0
+scipy>=1.10.0
 
 # Data Download
 gdown>=4.7.0
@@ -22,6 +23,10 @@ seaborn>=0.12.0
 # Text Processing & NLP
 vaderSentiment>=3.3.2        # For Reddit sentiment analysis
 nltk>=3.8.0                  # Used alongside VADER
+networkx>=3.0                # For network analysis and community detection
+
+# Machine Learning & Advanced Analysis
+scikit-learn>=1.3.0          # For NMF topic modeling
 
 # Python Standard Library modules (not required to install)
 # pathlib - File path handling (standard library)

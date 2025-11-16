@@ -345,13 +345,30 @@ def ensure_data_available():
     # Download individual CSV files
     download_from_gdrive(GDRIVE_GOOGLE_TRENDS_URL, DATA_DIR / GOOGLE_TRENDS_FILE)
     download_from_gdrive(GDRIVE_STOCK_DATA_URL, DATA_DIR / STOCK_DATA_FILE)
-    download_from_gdrive(GDRIVE_REDDIT_DATA_URL, DATA_DIR / "reddit_data_latest.csv")
+
+    # SPECIAL HANDLING FOR REDDIT: Only download if we don't have good data
+    reddit_path = DATA_DIR / "reddit_data_latest.csv"
+    if reddit_path.exists():
+        try:
+            df_test = pd.read_csv(reddit_path)
+            # Check if it has proper column structure
+            if 'post_text' in df_test.columns and 'post_title' in df_test.columns:
+                print("Using existing clean Reddit data")
+            else:
+                print("Existing Reddit data is corrupt, downloading fresh...")
+                download_from_gdrive(GDRIVE_REDDIT_DATA_URL, reddit_path)
+        except:
+            print("Error checking Reddit data, downloading fresh...")
+            download_from_gdrive(GDRIVE_REDDIT_DATA_URL, reddit_path)
+    else:
+        download_from_gdrive(GDRIVE_REDDIT_DATA_URL, reddit_path)
+
     download_from_gdrive(GDRIVE_PUBMED_DATA_URL, DATA_DIR / "pubmed_data_latest.csv")
 
     # Download and extract Media Cloud data
     download_media_cloud_data()
 
-    print("\n✓ Data availability check complete")
+    print("\nData availability check complete")
 
 
 # Combine all functions into a single entry point
