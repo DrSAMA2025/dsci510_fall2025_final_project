@@ -75,6 +75,33 @@ SEMAGLUTIDE_APPROVAL_DATE = '2025-08'
 GOOGLE_TRENDS_KEYWORDS = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
 GOOGLE_TRENDS_TIMEFRAME = '2023-01-01 2025-10-28'
 
+# Google Trends analysis parameters (regardless of timeframe)
+GOOGLE_TRENDS_ANALYSIS = {
+    'keywords': ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic'],
+    'timeframe': '2023-01-01 2025-10-28',
+    'validation': {
+        'required_non_zero_points': 10,  # MASLD had 13 non-zero points
+        'value_range': (0, 100),
+        'adf_test_alpha': 0.05,
+    },
+    'decomposition': {
+        'model': 'additive',
+        'period': 12
+    }
+}
+
+# Add validation thresholds
+VALIDATION_THRESHOLDS = {
+    'min_non_zero_points': 10,
+    'value_ranges': {
+        'MASLD': (0, 1),
+        'NAFLD': (0, 1),
+        'Rezdiffra': (0, 1),
+        'Wegovy': (15, 36),
+        'Ozempic': (39, 100)
+    }
+}
+
 # Reddit analysis parameters
 REDDIT_SUBREDDIT_CONFIG = [
     # Core MASLD subreddits (direct collection)

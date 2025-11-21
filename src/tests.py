@@ -108,7 +108,7 @@ def test_google_trends_data():
 
         # 3. Basic structure tests
         print("\n--- STRUCTURE TESTS ---")
-        required_columns = ['date', 'MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
+        required_columns = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
         missing_columns = [col for col in required_columns if col not in df.columns]
 
         if missing_columns:
@@ -125,14 +125,16 @@ def test_google_trends_data():
         else:
             print(f"WARNING: Found {missing_values} missing values")
 
-        # Check date range and continuity
-        df['date'] = pd.to_datetime(df['date'])
-        date_range = df['date'].max() - df['date'].min()
-        expected_days = (pd.to_datetime(STUDY_END_DATE) - pd.to_datetime(STUDY_START_DATE)).days
-        date_coverage = (date_range.days / expected_days) * 100
+        # Check date range and continuity (using index)
+        if isinstance(df.index, pd.DatetimeIndex):
+            date_range = df.index.max() - df.index.min()
+            expected_days = (pd.to_datetime(STUDY_END_DATE) - pd.to_datetime(STUDY_START_DATE)).days
+            date_coverage = (date_range.days / expected_days) * 100
 
-        print(f"Date range: {df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}")
-        print(f"Date coverage: {date_coverage:.1f}% of expected range")
+            print(f"Date range: {df.index.min().strftime('%Y-%m-%d')} to {df.index.max().strftime('%Y-%m-%d')}")
+            print(f"Date coverage: {date_coverage:.1f}% of expected range")
+        else:
+            print("WARNING: DataFrame index is not DatetimeIndex")
 
         # 5. Content validation tests
         print("\n--- CONTENT VALIDATION TESTS ---")

@@ -97,10 +97,16 @@ This test suite validates API connections, data quality, and Google Drive fallba
 ### Summary of the Results
 - **Comprehensive search interest tracking** for MASLD, NAFLD, Rezdiffra, Wegovy, and Ozempic across 148 weeks (2023-2025)
 - **Basic time series visualization** showing search trends with FDA approval event markers for both Resmetirom and GLP-1 agonists
-- **Advanced statistical analysis** revealing significant impact of GLP-1 approval on MASLD awareness (+0.503 points, p=0.009)
-- **Market saturation effects** detected with significant decreases in Wegovy (-1.382 points, p=0.041) and Ozempic (-7.912 points, p=0.006) search interest post-approval
-- **Data quality insights** showing MASLD and Rezdiffra have very low public search volume (91-93% zero values) compared to established GLP-1 drugs
+- **Advanced statistical analysis** revealing significant increases after both FDA approvals: MASLD (+4.4 points, p=0.000 Resmetirom; +14.4 points, p=0.000 GLP-1), NAFLD (+1.1 points, p=0.030 Resmetirom; +31.5 points, p=0.001 GLP-1), and Wegovy (+21.8 points, p=0.000 GLP-1)
+- **Strong GLP-1 impact** with Wegovy showing dramatic search increases post-approval (+21.8 points, p=0.000) while Ozempic remained stable (p=0.246)
+- **Data quality insights** showing Rezdiffra had minimal search volume (67% zeros, mean=0.3) compared to established terms
 - **Dual visualization approach** with both basic EDA plots and advanced statistical charts automatically saved and displayed
+
+### Advanced Statistical Validation
+- **Assumption Testing**: Stationarity (ADF tests), normality (Shapiro-Wilk), and variance equality (Levene's tests) validated
+- **Non-Parametric Confirmation**: Mann-Whitney U tests confirmed significant findings (MASLD: p=0.0000, NAFLD: p=0.0043, Wegovy: p=0.0000)
+- **Seasonal Decomposition**: Weekly pattern analysis addressing time series non-stationarity
+- **Methodological Rigor**: Consistent results across parametric and non-parametric methods demonstrate robust findings
 
 ### How to Run Google Trends Analysis
 ### Data Collection
@@ -128,7 +134,11 @@ jupyter notebook src/results.ipynb
 ```
 ### Output
 - **Basic Analysis**: `results/google_trends/google_trends_basic_analysis.png` - Timeline with FDA events
-- **Advanced Analysis**: `results/google_trends/advanced_google_trends_analysis.png` - Statistical results and correlations  
+- **Advanced Timeline**: `results/google_trends/advanced_google_trends_timeline.png` - Search trends with statistical annotations
+- **Impact Analysis**: `results/google_trends/advanced_google_trends_impact.png` - Bar chart of significant changes
+- **Correlation Matrix**: `results/google_trends/advanced_google_trends_correlation.png` - Search term relationships
+- **Statistical Table**: `results/google_trends/advanced_google_trends_statistical_table.png` - Comprehensive results summary
+- **Seasonal Decomposition**: `results/google_trends/google_trends_seasonal_decomposition.png` - Advanced time series analysis
 - **Statistical Summary**: Console output with p-values and significance markers for both FDA events
 
 ## (2) Reddit Analysis

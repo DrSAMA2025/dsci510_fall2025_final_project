@@ -5,6 +5,9 @@ scipy>=1.10.0
 openpyxl>=3.1.0
 statsmodels>=0.14.0
 
+# Time Series Analysis
+statsmodels>=0.14.0          # For seasonal decomposition, Granger causality, ADF tests
+
 # Data Download
 gdown>=4.7.0
 

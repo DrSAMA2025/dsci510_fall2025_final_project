@@ -13,6 +13,9 @@ from collections import defaultdict
 from itertools import combinations
 from scipy.stats import fisher_exact
 from statsmodels.tsa.stattools import grangercausalitytests
+from statsmodels.tsa.stattools import adfuller
+from scipy.stats import shapiro, levene
+
 
 # Import configuration constants
 from config import (
@@ -114,14 +117,15 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
     correlation_matrix = df_trends[['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']].corr()
 
     # Enhanced terminology analysis
-    df_trends['MASLD_NAFLD_Ratio'] = df_trends['MASLD'] / (df_trends['NAFLD'] + 0.1)
+    df_working = df_trends.copy()
+    df_working['MASLD_NAFLD_Ratio'] = df_working['MASLD'] / (df_working['NAFLD'] + 0.1)
 
     # Calculate ratio trends around both FDA events
     terminology_analysis = {}
     for event_name, event_date in FDA_EVENT_DATES.items():
         event_date = pd.to_datetime(event_date)
-        pre_ratio = df_trends[df_trends.index < event_date]['MASLD_NAFLD_Ratio'].tail(30).mean()
-        post_ratio = df_trends[df_trends.index > event_date]['MASLD_NAFLD_Ratio'].head(30).mean()
+        pre_ratio = df_working[df_working.index < event_date]['MASLD_NAFLD_Ratio'].tail(30).mean()
+        post_ratio = df_working[df_working.index > event_date]['MASLD_NAFLD_Ratio'].head(30).mean()
 
         terminology_analysis[event_name] = {
             'pre_ratio': pre_ratio,
@@ -138,12 +142,12 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
     significant_changes_glp1 = {}
 
     # Resmetirom approval impact analysis
-    pre_resmetirom = df_trends[df_trends.index < resmetirom_date].tail(30)
-    post_resmetirom = df_trends[df_trends.index > resmetirom_date].head(30)
+    pre_resmetirom = df_working[df_working.index < resmetirom_date].tail(30)
+    post_resmetirom = df_working[df_working.index > resmetirom_date].head(30)
 
     # GLP-1 approval impact analysis
-    pre_glp1 = df_trends[df_trends.index < glp1_date].tail(30)
-    post_glp1 = df_trends[df_trends.index > glp1_date].head(30)
+    pre_glp1 = df_working[df_working.index < glp1_date].tail(30)
+    post_glp1 = df_working[df_working.index > glp1_date].head(30)
 
     # Terms to test for each event
     resmetirom_terms = ['MASLD', 'NAFLD', 'Rezdiffra']
@@ -183,27 +187,33 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
 
     # 3a. Main timeline with both FDA events
     plt.figure(figsize=(12, 6))
-    df_trends.plot(linewidth=2, alpha=0.8)
+    df_working.plot(linewidth=2, alpha=0.8)
     plt.title('Google Search Trends: Impact of Both FDA Approvals', fontsize=14, fontweight='bold')
+    plt.ylabel('Relative Search Volume Index (0-100 scale)')
     plt.axvline(resmetirom_date, color='red', linestyle='--', linewidth=2, label='Resmetirom FDA Approval')
     plt.axvline(glp1_date, color='blue', linestyle='--', linewidth=2, label='GLP-1 FDA Approval')
-    plt.legend()
+    plt.legend(loc='upper left')
     plt.grid(True, alpha=0.3)
 
-    # Add significance annotations for both events
-    for term, stats_data in significant_changes_resmetirom.items():
-        if stats_data['p_value'] < 0.05:
-            plt.annotate(f'{term}*',
-                         xy=(resmetirom_date, df_trends[term].max() * 0.9),
-                         xytext=(10, 0), textcoords='offset points',
-                         fontweight='bold', color='red', fontsize=10)
+    # Add FDA approval labels
+    plt.text(resmetirom_date, plt.ylim()[1] * 0.98, 'Resmetirom FDA Approval',
+             rotation=90, verticalalignment='top', horizontalalignment='right',
+             fontsize=8, color='red', backgroundcolor='white', alpha=0.8)
 
-    for term, stats_data in significant_changes_glp1.items():
-        if stats_data['p_value'] < 0.05:
-            plt.annotate(f'{term}*',
-                         xy=(glp1_date, df_trends[term].max() * 0.8),
-                         xytext=(10, 0), textcoords='offset points',
-                         fontweight='bold', color='blue', fontsize=10)
+    plt.text(glp1_date, plt.ylim()[1] * 0.98, 'GLP-1 FDA Approval',
+             rotation=90, verticalalignment='top', horizontalalignment='right',
+             fontsize=8, color='blue', backgroundcolor='white', alpha=0.8)
+
+    # Significance information as regular print statements
+    significant_resmetirom = [term for term, stats in significant_changes_resmetirom.items()
+                              if stats['p_value'] < 0.05]
+    significant_glp1 = [term for term, stats in significant_changes_glp1.items()
+                        if stats['p_value'] < 0.05]
+
+    if significant_resmetirom:
+        print(f"Statistically significant changes after Resmetirom approval: {', '.join(significant_resmetirom)}")
+    if significant_glp1:
+        print(f"Statistically significant changes after GLP-1 approval: {', '.join(significant_glp1)}")
 
     plt.tight_layout()
     timeline_path = save_dir / "advanced_google_trends_timeline.png"
@@ -319,6 +329,234 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
         'combined_impact_analysis': impact_df,
         'terminology_analysis': terminology_analysis
     }
+
+
+def validate_statistical_assumptions(df_trends, event_date, terms, window_days=30):
+    """Validate statistical assumptions for time series analysis"""
+    print("\n" + "=" * 50)
+    print("STATISTICAL ASSUMPTION VALIDATION")
+    print("=" * 50)
+
+    event_date = pd.to_datetime(event_date)
+    pre_data = df_trends[df_trends.index < event_date].tail(window_days)
+    post_data = df_trends[df_trends.index > event_date].head(window_days)
+
+    validation_results = {}
+
+    for term in terms:
+        if term not in pre_data.columns or term not in post_data.columns:
+            continue
+
+        pre_values = pre_data[term].dropna()
+        post_values = post_data[term].dropna()
+
+        if len(pre_values) < 8 or len(post_values) < 8:
+            continue
+
+        term_results = {}
+
+        # 1. Stationarity check (Augmented Dickey-Fuller test)
+        try:
+            adf_stat, adf_p, _, _, critical_values, _ = adfuller(pre_values)
+            term_results['stationarity_pre'] = {
+                'p_value': adf_p,
+                'stationary': adf_p < 0.05,
+                'test_statistic': adf_stat
+            }
+
+            adf_stat, adf_p, _, _, critical_values, _ = adfuller(post_values)
+            term_results['stationarity_post'] = {
+                'p_value': adf_p,
+                'stationary': adf_p < 0.05,
+                'test_statistic': adf_stat
+            }
+        except Exception as e:
+            print(f"  ADF test failed for {term}: {e}")
+
+        # 2. Normality check (Shapiro-Wilk test)
+        try:
+            _, norm_p_pre = shapiro(pre_values)
+            _, norm_p_post = shapiro(post_values)
+            term_results['normality_pre'] = {
+                'p_value': norm_p_pre,
+                'normal': norm_p_pre > 0.05
+            }
+            term_results['normality_post'] = {
+                'p_value': norm_p_post,
+                'normal': norm_p_post > 0.05
+            }
+        except Exception as e:
+            print(f"  Normality test failed for {term}: {e}")
+
+        # 3. Variance equality check (Levene's test)
+        try:
+            levene_stat, levene_p = levene(pre_values, post_values)
+            term_results['variance_equality'] = {
+                'p_value': levene_p,
+                'equal_variance': levene_p > 0.05
+            }
+        except Exception as e:
+            print(f"  Levene test failed for {term}: {e}")
+
+        validation_results[term] = term_results
+
+        # Print results
+        print(f"\n{term}:")
+        if 'stationarity_pre' in term_results:
+            stat_pre = term_results['stationarity_pre']
+            stat_post = term_results['stationarity_post']
+            print(
+                f"  Stationarity - Pre: p={stat_pre['p_value']:.4f} ({'stationary' if stat_pre['stationary'] else 'non-stationary'})")
+            print(
+                f"  Stationarity - Post: p={stat_post['p_value']:.4f} ({'stationary' if stat_post['stationary'] else 'non-stationary'})")
+
+        if 'normality_pre' in term_results:
+            norm_pre = term_results['normality_pre']
+            norm_post = term_results['normality_post']
+            print(
+                f"  Normality - Pre: p={norm_pre['p_value']:.4f} ({'normal' if norm_pre['normal'] else 'non-normal'})")
+            print(
+                f"  Normality - Post: p={norm_post['p_value']:.4f} ({'normal' if norm_post['normal'] else 'non-normal'})")
+
+        if 'variance_equality' in term_results:
+            var_eq = term_results['variance_equality']
+            print(
+                f"  Variance Equality: p={var_eq['p_value']:.4f} ({'equal' if var_eq['equal_variance'] else 'unequal'})")
+
+    return validation_results
+
+
+def analyze_trends_seasonal_decomposition(df_trends, notebook_plot=False):
+    """Perform seasonal decomposition of Google Trends data"""
+    print("\n[Advanced Analysis] Seasonal Decomposition of Search Trends...")
+    save_dir = RESULTS_DIR / GOOGLE_TRENDS_ANALYSIS_SUBDIR
+
+    from statsmodels.tsa.seasonal import seasonal_decompose
+
+    # Select key terms for decomposition
+    key_terms = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
+
+    fig, axes = plt.subplots(len(key_terms), 4, figsize=(16, 12))
+    if len(key_terms) == 1:
+        axes = [axes]
+
+    decomposition_results = {}
+
+    for i, term in enumerate(key_terms):
+        if term not in df_trends.columns:
+            continue
+
+        series = df_trends[term].dropna()
+
+        # Ensure we have enough data for decomposition
+        if len(series) < 30:
+            print(f"  Insufficient data for {term} decomposition: {len(series)} points")
+            continue
+
+        try:
+            # Perform seasonal decomposition with 7-day period
+            decomposition = seasonal_decompose(series, model='additive', period=7)
+
+            # Store results
+            decomposition_results[term] = {
+                'trend': decomposition.trend,
+                'seasonal': decomposition.seasonal,
+                'residual': decomposition.resid
+            }
+
+            # Plot decomposition
+            axes[i][0].plot(series.index, series.values, color='blue', linewidth=1)
+            axes[i][0].set_title(f'{term} - Original')
+            axes[i][0].set_ylabel('Search Volume')
+            axes[i][0].grid(True, alpha=0.3)
+
+            axes[i][1].plot(decomposition.trend.index, decomposition.trend.values, color='red', linewidth=1)
+            axes[i][1].set_title(f'{term} - Trend')
+            axes[i][1].set_ylabel('Trend Component')
+            axes[i][1].grid(True, alpha=0.3)
+
+            axes[i][2].plot(decomposition.seasonal.index, decomposition.seasonal.values, color='green', linewidth=1)
+            axes[i][2].set_title(f'{term} - Seasonal')
+            axes[i][2].set_ylabel('Seasonal Component')
+            axes[i][2].grid(True, alpha=0.3)
+
+            axes[i][3].plot(decomposition.resid.index, decomposition.resid.values, color='purple', linewidth=1)
+            axes[i][3].set_title(f'{term} - Residual')
+            axes[i][3].set_ylabel('Residual Component')
+            axes[i][3].grid(True, alpha=0.3)
+
+            # Add FDA event lines to all subplots
+            for j in range(4):
+                for event_name, date_str in FDA_EVENT_DATES.items():
+                    date = pd.to_datetime(date_str)
+                    axes[i][j].axvline(date, color='black', linestyle='--', alpha=0.7, linewidth=1)
+
+        except Exception as e:
+            print(f"  Decomposition failed for {term}: {e}")
+            # Hide empty subplots
+            for j in range(4):
+                axes[i][j].set_visible(False)
+
+    plt.suptitle('Seasonal Decomposition of Google Search Trends\n(7-day period for weekly patterns)',
+                 fontsize=16, fontweight='bold', y=0.95)
+    plt.tight_layout()
+
+    # Save plot
+    save_path = save_dir / "google_trends_seasonal_decomposition.png"
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"  > Saved seasonal decomposition to: {save_path.name}")
+
+    if not notebook_plot:
+        plt.close()
+    else:
+        plt.show()
+
+    return decomposition_results
+
+
+def non_parametric_validation(df_trends, event_date, terms, window_days=30):
+    """Non-parametric validation for data violating normality assumptions"""
+    print("\n" + "=" * 50)
+    print("NON-PARAMETRIC VALIDATION (Mann-Whitney U Test)")
+    print("=" * 50)
+
+    from scipy.stats import mannwhitneyu
+
+    event_date = pd.to_datetime(event_date)
+    pre_data = df_trends[df_trends.index < event_date].tail(window_days)
+    post_data = df_trends[df_trends.index > event_date].head(window_days)
+
+    results = {}
+
+    for term in terms:
+        if term not in pre_data.columns or term not in post_data.columns:
+            continue
+
+        pre_values = pre_data[term].dropna()
+        post_values = post_data[term].dropna()
+
+        if len(pre_values) < 8 or len(post_values) < 8:
+            continue
+
+        try:
+            # Mann-Whitney U test (non-parametric alternative to T-test)
+            stat, p_value = mannwhitneyu(pre_values, post_values, alternative='two-sided')
+
+            results[term] = {
+                'u_statistic': stat,
+                'p_value': p_value,
+                'pre_median': pre_values.median(),
+                'post_median': post_values.median(),
+                'median_change': post_values.median() - pre_values.median()
+            }
+
+            sig_star = "*" if p_value < 0.05 else ""
+            print(f"  {term}: U={stat:.1f}, p={p_value:.4f} {sig_star}")
+
+        except Exception as e:
+            print(f"  Mann-Whitney test failed for {term}: {e}")
+
+    return results
 
 
 def analyze_reddit_sentiment(df_reddit: pd.DataFrame, notebook_plot=False):
