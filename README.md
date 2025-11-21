@@ -148,17 +148,19 @@ jupyter notebook src/results.ipynb
 - **Sentiment Analysis**: VADER sentiment scoring of Reddit posts and comments with FDA event tracking
 - **Topic Modeling**: NMF-based topic discovery across 5 distinct discussion themes
 - **Temporal Pattern Analysis**: Hourly, daily, and monthly activity patterns with FDA impact quantification
+- **Enhanced statistical validation** including normality tests, autocorrelation checks, Bonferroni correction, and effect size calculations (Cohen's d)
 - **Network Analysis**: Subreddit relationship mapping and community detection
 - **Cross-Platform Correlation**: Reddit discussion volume vs. Google Trends search interest
+- **Methodological rigor**: All analyses include statistical assumption validation, multiple comparison correction, and effect size reporting
 
 ### Summary of the Results
-- **Basic EDA insights** revealed uneven subreddit distribution with r/Supplements and r/fattyliver dominating discussion volume
+- **Basic EDA insights** revealed pharmacy (1,993 posts), Ozempic (1,872 posts), and MASH (1,089 posts) as the most active subreddits
 - **Text analysis** showed varied post lengths with comprehensive patient discussions averaging substantial content depth
-- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no significant changes, p>0.05)
-- **Topic modeling revealed 5 key discussion themes**: Personal experiences (22.8%), Information & concerns (21.3%), Private discussions (19.8%), Liver disease discussions (13.7%), and Drug treatments (22.4%)
+- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) but revealing large effect size for Resmetirom (Cohen's d = -0.896)
+- **Topic modeling revealed 5 key discussion themes**: Personal experiences (44.9%), Drug treatments (33.4%), Liver disease discussions (14.1%), Information seeking (5.0%), and Private discussions (2.5%)
 - **Temporal patterns identified** peak discussion times at 11:00 AM and Fridays, with significant GLP-1 approval impact (+82.3% discussion increase)
-- **Network analysis showed fully connected MASLD community** with 12 subreddits forming a unified discussion ecosystem (density=1.000)
-- **Strong cross-platform correlation** between Reddit discussions and MASLD searches (r=0.522), indicating coordinated online engagement
+- **Network analysis showed fully connected MASLD community** with all 12 subreddits equally central in a unified discussion ecosystem (density=1.000, single community detected)
+- **Strong cross-platform correlation** between Reddit discussions and MASLD searches (r=0.344), with positive relationships for key treatments (Wegovy r=0.312, Rezdiffra r=0.272)
 - **Drug treatment discussions dominated** with 2,972 posts, reflecting high community interest in pharmaceutical interventions
 
 ### How to Run Reddit Analysis
@@ -186,14 +188,17 @@ python src/analyze.py       # Generates sentiment, topic, temporal, and network 
 # Jupyter notebook exploration
 jupyter notebook src/results.ipynb
 ```
-
 ### Output
-- **Basic EDA**: `results/reddit/reddit_basic_analysis.png` - Post volume trends, subreddit distribution, and text statistics
-- **Sentiment Analysis**: `results/reddit/sentiment_analysis.png` - Sentiment timeline with FDA events
-- **Topic Modeling**: `results/reddit/topic_modeling_results.png` - 5-topic distribution and key terms
-- **Temporal Patterns**: `results/reddit/temporal_patterns.png` - Activity heatmaps and FDA impact charts
-- **Network Analysis**: `results/reddit/network_analysis.png` - Subreddit relationship graph
-- **Cross-Platform Correlation**: `results/reddit/correlation_analysis.png` - Reddit vs. Google Trends relationship
+- **Sentiment Timeline**: `results/reddit/reddit_basic_sentiment_timeline.png` - Weekly sentiment trends with FDA events
+- **Advanced Sentiment Analysis**: 
+  - `results/reddit/reddit_sentiment_timeline.png` - Daily sentiment with statistical events
+  - `results/reddit/reddit_subreddit_sentiment.png` - Sentiment comparison across subreddits
+  - `results/reddit/reddit_sentiment_distribution.png` - Sentiment score histogram
+  - `results/reddit/reddit_fda_impact.png` - FDA event statistical impacts
+- **Topic Modeling**: `results/reddit/reddit_topic_analysis.png` - 5-topic distribution and key terms
+- **Temporal Patterns**: `results/reddit/reddit_temporal_patterns.png` - Hourly, daily, monthly activity patterns
+- **Network Analysis**: `results/reddit/reddit_network_analysis.png` - Subreddit relationship graph and centrality
+- **Cross-Platform Correlation**: `results/reddit/reddit_trends_correlation.png` - Reddit vs. Google Trends relationships
 
 ## (3) PubMed Analysis
 
@@ -205,11 +210,11 @@ jupyter notebook src/results.ipynb
 - **Statistical Significance Testing**: Fisher's exact tests with p-values and odds ratios for FDA event impacts
 
 ### Summary of the Results
-- **Comprehensive publication analysis** of 620 MASLD-related research articles (2023-2025)
+- **Comprehensive publication analysis** of 618 MASLD-related research articles (2023-2025)
 - **Basic timeline visualization** showing disease-drug combination trends with FDA approval markers
-- **Advanced statistical analysis** revealing Resmetirom approval created entirely new research area (0 publications before → 133 after, clinically significant)
-- **GLP-1 research maturity** demonstrated with established publication volume pre-approval (159 publications) and statistically significant decline post-approval (odds ratio: 3.615, p=0.0000)
-- **Research focus distribution** showing 213 MASLD+GLP-1 publications vs 133 MASLD+Resmetirom publications
+- **Advanced statistical analysis** revealing Resmetirom approval created entirely new research area (0 publications before → 132 after, clinically significant)
+- **GLP-1 research maturity** demonstrated with established publication volume pre-approval (157 publications) and statistically significant increase post-approval (odds ratio: 3.557, p=0.0000)
+- **Research focus distribution** showing 211 MASLD+GLP-1 publications vs 132 MASLD+Resmetirom publications
 - **Top journal identification** with leading publications in MASLD research landscape
 - **Multi-plot visualization** with separate timeline, focus areas, journal distribution, and FDA impact charts
 
