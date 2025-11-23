@@ -1,6 +1,7 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 # ==============================================================================
 # 1. PATH CONFIGURATION
@@ -125,8 +126,8 @@ REDDIT_SUBREDDIT_CONFIG = [
 ]
 
 # Study timeframe (consistent across all data sources)
-STUDY_START_DATE = '2023-01-01'
-STUDY_END_DATE = '2025-10-28'
+STUDY_START_DATE = datetime(2023, 1, 1)
+STUDY_END_DATE = datetime(2025, 10, 28)
 
 # ==============================================================================
 # 6. VISUALIZATION SETTINGS
@@ -142,197 +143,10 @@ MEDIA_CLOUD_COLORS = {
 }
 
 # ==============================================================================
-# 7. HELPER FUNCTIONS
-# ==============================================================================
-def get_latest_data_file(pattern):
-    """Helper function to get the latest file matching a pattern"""
-    files = list(DATA_DIR.glob(pattern))
-    if not files:
-        return None
-    return max(files, key=lambda x: x.stat().st_ctime)
-
-def validate_config():
-    """Validate that essential configuration is present"""
-    errors = []
-
-    # Check required directories
-    if not DATA_DIR.exists():
-        errors.append(f"DATA_DIR does not exist: {DATA_DIR}")
-    if not RESULTS_DIR.exists():
-        errors.append(f"RESULTS_DIR does not exist: {RESULTS_DIR}")
-
-    # Check Reddit credentials (warn but don't fail if missing)
-    if not REDDIT_CLIENT_ID or not REDDIT_CLIENT_SECRET:
-        print("Warning: Reddit API credentials not found. Reddit data collection will fail.")
-
-    return errors
-
-# ==============================================================================
-# 8. GOOGLE DRIVE/PRE-RETRIEVED DATA LINKS (For User Testing)
+# 7. GOOGLE DRIVE/PRE-RETRIEVED DATA LINKS (For User Testing)
 # ==============================================================================
 GDRIVE_GOOGLE_TRENDS_URL = "https://drive.google.com/file/d/1lrov39Ww1Zp2kJTu4zb1yr3Q2j69H1rX/view?usp=drive_link"
 GDRIVE_STOCK_DATA_URL = "https://drive.google.com/file/d/1hHWJ85BtGBP0aJBkhgr0wjjbPWvWqZYX/view?usp=drive_link"
 GDRIVE_REDDIT_DATA_URL = "https://drive.google.com/file/d/1atMK_8axChUJMtzw8e7iv46tEehPTSsK/view?usp=drive_link"
 GDRIVE_PUBMED_DATA_URL = "https://drive.google.com/file/d/1HyNZl8yxF3U9ooj9reF48MlRHheFTPEt/view?usp=drive_link"
 GDRIVE_MEDIA_CLOUD_URL = "https://drive.google.com/file/d/1MfP0OizpCSUrqjZmMLwrCj3vS4KI0KA3/view?usp=drive_link"
-
-# ==============================================================================
-# 9. GOOGLE DRIVE DATA LOADING FUNCTIONS (Fallback when APIs fail)
-# ==============================================================================
-
-def load_google_trends_from_drive():
-    """Load Google Trends data from Google Drive"""
-    try:
-        import gdown
-        import pandas as pd
-        import tempfile
-        import os
-
-        # Extract file ID from Google Drive URL
-        file_id = GDRIVE_GOOGLE_TRENDS_URL.split('/d/')[1].split('/')[0]
-        download_url = f"https://drive.google.com/uc?id={file_id}"
-
-        # Download to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
-            tmp_path = tmp_file.name
-
-        # Download outside the context manager
-        gdown.download(download_url, tmp_path, quiet=False)
-
-        # Read the file
-        df = pd.read_csv(tmp_path)
-
-        # Close and delete the file
-        try:
-            os.unlink(tmp_path)
-        except:
-            pass  # Ignore cleanup errors
-
-        print("Google Trends data loaded from Google Drive")
-        return df
-
-    except Exception as e:
-        print(f"Failed to load Google Trends from Google Drive: {e}")
-        return None
-
-
-def load_reddit_data_from_drive():
-    """Load Reddit data from Google Drive"""
-    try:
-        import gdown
-        import pandas as pd
-        import tempfile
-        import os
-
-        file_id = GDRIVE_REDDIT_DATA_URL.split('/d/')[1].split('/')[0]
-        download_url = f"https://drive.google.com/uc?id={file_id}"
-
-        # Download to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
-            tmp_path = tmp_file.name
-
-        # Download outside the context manager
-        gdown.download(download_url, tmp_path, quiet=False)
-
-        # Read the file
-        df = pd.read_csv(tmp_path)
-
-        # Close and delete the file
-        try:
-            os.unlink(tmp_path)
-        except:
-            pass  # Ignore cleanup errors
-
-        print("Reddit data loaded from Google Drive")
-        return df
-
-    except Exception as e:
-        print(f"Failed to load Reddit data from Google Drive: {e}")
-        return None
-
-
-def load_pubmed_data_from_drive():
-    """Load PubMed data from Google Drive"""
-    try:
-        import gdown
-        import pandas as pd
-        import tempfile
-        import os
-
-        file_id = GDRIVE_PUBMED_DATA_URL.split('/d/')[1].split('/')[0]
-        download_url = f"https://drive.google.com/uc?id={file_id}"
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
-            gdown.download(download_url, tmp_file.name, quiet=False)
-            df = pd.read_csv(tmp_file.name)
-            os.unlink(tmp_file.name)
-
-        print("PubMed data loaded from Google Drive")
-        return df
-
-    except Exception as e:
-        print(f"Failed to load PubMed data from Google Drive: {e}")
-        return None
-
-
-def load_stock_data_from_drive():
-    """Load stock data from Google Drive"""
-    try:
-        import gdown
-        import pandas as pd
-        import tempfile
-        import os
-
-        file_id = GDRIVE_STOCK_DATA_URL.split('/d/')[1].split('/')[0]
-        download_url = f"https://drive.google.com/uc?id={file_id}"
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
-            gdown.download(download_url, tmp_file.name, quiet=False)
-            df = pd.read_csv(tmp_file.name)
-            os.unlink(tmp_file.name)
-
-        print("Stock data loaded from Google Drive")
-        return df
-
-    except Exception as e:
-        print(f"Failed to load stock data from Google Drive: {e}")
-        return None
-
-
-def load_media_cloud_from_drive():
-    """Load Media Cloud data from Google Drive"""
-    try:
-        import gdown
-        import zipfile
-        import tempfile
-        import os
-        from pathlib import Path
-
-        file_id = GDRIVE_MEDIA_CLOUD_URL.split('/d/')[1].split('/')[0]
-        download_url = f"https://drive.google.com/uc?id={file_id}"
-
-        # Download and extract zip file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
-            gdown.download(download_url, tmp_file.name, quiet=False)
-
-            # Extract to media_cloud directory
-            with zipfile.ZipFile(tmp_file.name, 'r') as zip_ref:
-                zip_ref.extractall(DATA_DIR / "media_cloud")
-
-            os.unlink(tmp_file.name)
-
-        print("Media Cloud data loaded from Google Drive")
-        return True
-
-    except Exception as e:
-        print(f"Failed to load Media Cloud data from Google Drive: {e}")
-        return False
-
-
-# Optional: Auto-validate on import
-if __name__ != "__main__":
-    config_errors = validate_config()
-    if config_errors:
-        print("Configuration warnings:")
-        for error in config_errors:
-            print(f"  - {error}")

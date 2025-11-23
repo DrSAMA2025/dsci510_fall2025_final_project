@@ -1,9 +1,12 @@
 import pandas as pd
+import datetime
+from datetime import datetime
 from pathlib import Path
 import os
 import glob
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import nltk
+from utils import get_latest_data_filepath, load_data
 
 # Download VADER lexicon if not present (required by VADER)
 try:
@@ -19,40 +22,6 @@ from config import (
     REDDIT_DATA_FILE_BASE, PUBMED_DATA_FILE_BASE,
     STUDY_START_DATE, STUDY_END_DATE
 )
-
-
-# --- Utility Functions ---
-
-def get_latest_data_filepath(base_name: str) -> Path or None:
-    """Finds the most recently created file matching the base_name pattern."""
-    search_pattern = str(DATA_DIR / f"{base_name}*.csv")
-    list_of_files = glob.glob(search_pattern)
-
-    if not list_of_files:
-        print(f"[Error] No files found matching pattern: {base_name}*.csv")
-        return None
-
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return Path(latest_file)
-
-
-def load_data(filename_or_base: str, is_timestamped=False, **kwargs) -> pd.DataFrame or None:
-    """Loads data, handling both fixed and timestamped files."""
-    if is_timestamped:
-        path = get_latest_data_filepath(filename_or_base)
-    else:
-        path = DATA_DIR / filename_or_base
-
-    if path and path.exists():
-        print(f"  > Loading data from: {path.name}")
-        try:
-            return pd.read_csv(path, **kwargs)
-        except Exception as e:
-            print(f"[Error] Failed to read CSV {path.name}: {e}")
-            return None
-    else:
-        print(f"[Error] Data file not found for: {filename_or_base}")
-        return None
 
 
 # --- Processing Functions ---

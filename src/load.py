@@ -4,37 +4,23 @@ import yfinance as yf
 from pytrends.request import TrendReq
 from Bio import Entrez
 import requests
+import datetime
 from datetime import datetime
 from pathlib import Path
+from utils import get_latest_data_file, get_latest_timestamp_filepath, process_submission
+
 
 # Import configuration constants
 from config import (
     DATA_DIR,
     REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT, REDDIT_SUBREDDIT_CONFIG,
-    STUDY_START_DATE, STUDY_END_DATE,
     GOOGLE_TRENDS_KEYWORDS, GOOGLE_TRENDS_TIMEFRAME, GOOGLE_TRENDS_FILE,
     STOCK_DATA_FILE,
     PUBMED_DATA_FILE_BASE,
-    REDDIT_DATA_FILE_BASE
+    REDDIT_DATA_FILE_BASE,
+    GDRIVE_GOOGLE_TRENDS_URL, GDRIVE_STOCK_DATA_URL, GDRIVE_REDDIT_DATA_URL,
+    GDRIVE_PUBMED_DATA_URL, GDRIVE_MEDIA_CLOUD_URL
 )
-
-
-# --- Utility Functions ---
-
-def get_latest_timestamp_filepath(base_name: str) -> Path:
-    """Generates a timestamped filepath for saving data."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f"{base_name}{STUDY_START_DATE.replace('-', '')}_{STUDY_END_DATE.replace('-', '')}_{timestamp}.csv"
-    # Ensure all file names are correctly standardized for saving
-    if base_name == PUBMED_DATA_FILE_BASE:
-        filename = f"{PUBMED_DATA_FILE_BASE}{timestamp}.csv"
-    elif base_name == REDDIT_DATA_FILE_BASE:
-        filename = f"{REDDIT_DATA_FILE_BASE}{STUDY_START_DATE.replace('-', '')}_{STUDY_END_DATE.replace('-', '')}_{timestamp}.csv"
-    else:
-        # For non-timestamped files like stock/trends, return the configured name
-        return DATA_DIR / base_name
-
-    return DATA_DIR / filename
 
 
 # --- Data Source Functions ---
@@ -115,48 +101,6 @@ def get_reddit_data():
         return None
 
 
-def process_submission(submission, search_term=None):
-    """Processes a PRAW submission object into a dictionary row."""
-    # Create the main post data
-    post_data = {
-        'subreddit': submission.subreddit.display_name,
-        'search_term': search_term,
-        'post_id': submission.id,
-        'post_title': submission.title,
-        'post_text': submission.selftext,
-        'timestamp': datetime.fromtimestamp(submission.created_utc).strftime('%Y-%m-%d %H:%M:%S'),
-        'type': 'post',
-        'comment_text': None
-    }
-
-    # Initialize list with the post data
-    all_data = [post_data]
-
-    # Get comments if they exist
-    try:
-        submission.comments.replace_more(limit=0)
-
-        for comment in submission.comments.list():
-            # Only include top-level comments for simplicity
-            if comment.parent_id == submission.fullname:
-                comment_data = {
-                    'subreddit': submission.subreddit.display_name,
-                    'search_term': search_term,
-                    'post_id': submission.id,
-                    'post_title': submission.title,
-                    'post_text': None,  # Post text is only on the post row
-                    'timestamp': datetime.fromtimestamp(comment.created_utc).strftime('%Y-%m-%d %H:%M:%S'),
-                    'type': 'comment',
-                    'comment_text': comment.body
-                }
-                all_data.append(comment_data)
-
-    except Exception as e:
-        print(f"  Warning: Could not process comments for {submission.id}: {e}")
-
-    return all_data
-
-
 def get_pubmed_data(email="test@example.com"):
     """Fetches PubMed article metadata using Biopython's Entrez."""
     print("\n[Loading] Fetching PubMed article metadata...")
@@ -175,7 +119,17 @@ def get_pubmed_data(email="test@example.com"):
 
         article_data = []
         if id_list:
+            # WORKAROUND: Import datetime right before the problematic Entrez.read()
+            import datetime
+            from datetime import datetime
+
             fetch_handle = Entrez.efetch(db="pubmed", id=id_list, rettype="xml", retmode="xml")
+
+            # WORKAROUND: Force datetime into the global scope for Entrez.read()
+            import builtins
+            if not hasattr(builtins, 'datetime'):
+                builtins.datetime = datetime
+
             articles = Entrez.read(fetch_handle)
             fetch_handle.close()
 
@@ -369,6 +323,158 @@ def ensure_data_available():
     download_media_cloud_data()
 
     print("\nData availability check complete")
+
+# ==============================================================================
+# GOOGLE DRIVE DATA LOADING FUNCTIONS (Fallback when APIs fail)
+# ==============================================================================
+
+def load_google_trends_from_drive():
+    """Load Google Trends data from Google Drive"""
+    try:
+        import gdown
+        import pandas as pd
+        import tempfile
+        import os
+
+        # Extract file ID from Google Drive URL
+        file_id = GDRIVE_GOOGLE_TRENDS_URL.split('/d/')[1].split('/')[0]
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+
+        # Download to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
+            tmp_path = tmp_file.name
+
+        # Download outside the context manager
+        gdown.download(download_url, tmp_path, quiet=False)
+
+        # Read the file
+        df = pd.read_csv(tmp_path)
+
+        # Close and delete the file
+        try:
+            os.unlink(tmp_path)
+        except:
+            pass  # Ignore cleanup errors
+
+        print("Google Trends data loaded from Google Drive")
+        return df
+
+    except Exception as e:
+        print(f"Failed to load Google Trends from Google Drive: {e}")
+        return None
+
+
+def load_reddit_data_from_drive():
+    """Load Reddit data from Google Drive"""
+    try:
+        import gdown
+        import pandas as pd
+        import tempfile
+        import os
+
+        file_id = GDRIVE_REDDIT_DATA_URL.split('/d/')[1].split('/')[0]
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+
+        # Download to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
+            tmp_path = tmp_file.name
+
+        # Download outside the context manager
+        gdown.download(download_url, tmp_path, quiet=False)
+
+        # Read the file
+        df = pd.read_csv(tmp_path)
+
+        # Close and delete the file
+        try:
+            os.unlink(tmp_path)
+        except:
+            pass  # Ignore cleanup errors
+
+        print("Reddit data loaded from Google Drive")
+        return df
+
+    except Exception as e:
+        print(f"Failed to load Reddit data from Google Drive: {e}")
+        return None
+
+
+def load_pubmed_data_from_drive():
+    """Load PubMed data from Google Drive"""
+    try:
+        import gdown
+        import pandas as pd
+        import tempfile
+        import os
+
+        file_id = GDRIVE_PUBMED_DATA_URL.split('/d/')[1].split('/')[0]
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
+            gdown.download(download_url, tmp_file.name, quiet=False)
+            df = pd.read_csv(tmp_file.name)
+            os.unlink(tmp_file.name)
+
+        print("PubMed data loaded from Google Drive")
+        return df
+
+    except Exception as e:
+        print(f"Failed to load PubMed data from Google Drive: {e}")
+        return None
+
+
+def load_stock_data_from_drive():
+    """Load stock data from Google Drive"""
+    try:
+        import gdown
+        import pandas as pd
+        import tempfile
+        import os
+
+        file_id = GDRIVE_STOCK_DATA_URL.split('/d/')[1].split('/')[0]
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_file:
+            gdown.download(download_url, tmp_file.name, quiet=False)
+            df = pd.read_csv(tmp_file.name)
+            os.unlink(tmp_file.name)
+
+        print("Stock data loaded from Google Drive")
+        return df
+
+    except Exception as e:
+        print(f"Failed to load stock data from Google Drive: {e}")
+        return None
+
+
+def load_media_cloud_from_drive():
+    """Load Media Cloud data from Google Drive"""
+    try:
+        import gdown
+        import zipfile
+        import tempfile
+        import os
+        from pathlib import Path
+
+        file_id = GDRIVE_MEDIA_CLOUD_URL.split('/d/')[1].split('/')[0]
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+
+        # Download and extract zip file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+            gdown.download(download_url, tmp_file.name, quiet=False)
+
+            # Extract to media_cloud directory
+            with zipfile.ZipFile(tmp_file.name, 'r') as zip_ref:
+                zip_ref.extractall(DATA_DIR / "media_cloud")
+
+            os.unlink(tmp_file.name)
+
+        print("Media Cloud data loaded from Google Drive")
+        return True
+
+    except Exception as e:
+        print(f"Failed to load Media Cloud data from Google Drive: {e}")
+        return False
 
 
 # Combine all functions into a single entry point

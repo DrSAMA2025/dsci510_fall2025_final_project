@@ -4,12 +4,12 @@
 ## Data Sources
 
 | Data Source | Description | Type | Fields |
-|-------------|-------------|------|--------|
-| Google Trends | Public search interest for MASLD, NAFLD, Rezdiffra, Wegovy, Ozempic | API | Term, date, interest index, region |
-| Reddit | Public discussions from r/NAFLD, r/MASH, r/Ozempic, r/Wegovy, r/medicine, r/pharmacy | API | Subreddit, post title, text, timestamp, comments, sentiment scores |
-| PubMed | Scientific publications on MASLD/NAFLD and related drug treatments | API | PubMed ID, title, abstract, publication date, journal |
-| Yahoo Finance | Stock data for Novo Nordisk (NVO) and Madrigal Pharmaceuticals (MDGL) | API | Date, closing price, volume, company ticker |
-| Media Cloud | News media coverage analysis from various sources | File | Article content, publication dates, sources, topics |
+|-------------|-------------|---|--------|
+| Google Trends | Public search interest for MASLD, NAFLD, Rezdiffra, Wegovy, Ozempic | API + G-Drive Fallback | Term, date, interest index, region |
+| Reddit | Public discussions from r/NAFLD, r/MASH, r/Ozempic, r/Wegovy, r/medicine, r/pharmacy | API + G-Drive Fallback | Subreddit, post title, text, timestamp, comments, sentiment scores |
+| PubMed | Scientific publications on MASLD/NAFLD and related drug treatments | API + G-Drive Fallback | PubMed ID, title, abstract, publication date, journal |
+| Yahoo Finance | Stock data for Novo Nordisk (NVO) and Madrigal Pharmaceuticals (MDGL) | API + G-Drive Fallback | Date, closing price, volume, company ticker |
+| Media Cloud | News media coverage analysis from various sources | File + G-Drive Fallback | Article content, publication dates, sources, topics |
 
 ## Results
 - **Successfully implemented multi-source data pipeline** collecting data from 5 different platforms
@@ -29,30 +29,79 @@ REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
 REDDIT_USER_AGENT=dsci510_final_project_v1.0
 
 ### Pre-collected Data Access
-For testing without API calls, pre-collected datasets are available via Google Drive links configured in `config.py`. This ensures project functionality even when API rate limits are encountered.
+For testing without API calls, pre-collected datasets are available via Google Drive links. The data loading system in `load.py` automatically uses pre-collected data when API credentials are unavailable or rate limits are encountered, ensuring project functionality under all conditions.
 
 ### Special Python Packages Used
+#### Core Data Manipulation & Analysis
+- **pandas**: Data manipulation and analysis
+- **numpy**: Numerical computing and array operations
+- **scipy**: Statistical analysis and scientific computing
+- **statsmodels**: Advanced statistical modeling and hypothesis testing
+
+#### Data Collection & APIs
 - **praw**: Reddit API data collection
 - **yfinance**: Stock market data for pharmaceutical companies  
 - **pytrends**: Google Trends search interest data
 - **biopython**: PubMed scientific literature access
+- **requests**: HTTP requests for web data collection
+
+#### Machine Learning & NLP
+- **scikit-learn**: NMF topic modeling and machine learning
 - **vaderSentiment**: Reddit comment sentiment analysis
+- **nltk**: Natural language processing toolkit
+- **networkx**: Network analysis and community detection
+
+#### Visualization
+- **matplotlib**: Comprehensive plotting and visualization
+- **seaborn**: Statistical data visualization
+
+#### Infrastructure & Utilities
 - **gdown**: Google Drive data download functionality
 - **python-dotenv**: Secure environment variable management
+- **beautifulsoup4**: Web scraping and HTML parsing
 
 Install all packages:
 ```bash
 pip install -r requirements.txt
 ```
 
+## How to Run
+
+### Reproducing the Analysis
+1. Clone the repository and navigate to the project directory
+2. Install dependencies: `pip install -r requirements.txt`
+3. Set up environment variables: Copy `src/.env.example` to `src/.env` and add your API credentials (see instructions below)
+4. Navigate to the `src/` directory: `cd src`
+5. Run the complete pipeline: `python main.py`
+6. For interactive exploration, open `results.ipynb` in Jupyter
+
+### Environment Setup
+Create `src/.env` file with the following structure (using the template from `src/.env.example`):
+REDDIT_CLIENT_ID=""
+REDDIT_CLIENT_SECRET=""
+REDDIT_USER_AGENT="dsci510_final_project_v1.0"
+
+**Note:** The project includes pre-collected datasets and will automatically use Google Drive fallback if API credentials are not available.
+
+### Data Pipeline
+The project follows this data flow:
+1. **Data Collection** (`load.py`): Fetches data from APIs with Google Drive fallback
+2. **Data Processing** (`process.py`): Cleans and standardizes data across platforms
+3. **Analysis** (`analyze.py`): Performs statistical analysis and generates visualizations
+4. **Results** (`results.ipynb`): Interactive exploration of findings
+
+All data loading and processing is reproducible. The pipeline will automatically use pre-collected data from Google Drive if API credentials are not available.
+
 ## Running Analysis
 
 ### Basic Execution
 From the `src/` directory, run the complete pipeline:
 ```bash
+cd src
 python main.py 
 ```
 ### Advanced Options
+From the `src/` directory:
 - Use existing data only: `python main.py --analysis-only`
 - Skip Reddit/Pubmed APIs: `python main.py --skip-reddit --skip-pubmed`
 - Quick test run: `python main.py --quick`
@@ -67,16 +116,17 @@ This test suite validates API connections, data quality, and Google Drive fallba
 
 ### Project Structure
 - **src/**: Source code directory
-  - `load.py`: Data collection from APIs
+  - `load.py`: Data collection from APIs and Google Drive fallback
   - `process.py`: Data cleaning and processing  
   - `analyze.py`: Analysis and visualization
   - `config.py`: Configuration and constants
+  - `utils.py`: Helper functions and utilities
   - `tests.py`: Test suite validation
   - `main.py`: Main execution script
   - `results.ipynb`: Interactive analysis notebook
 - **data/**: Collected datasets (excluded from Git)
 - **results/**: Analysis outputs (excluded from Git) 
-- **doc/**: Final project progress report
+- **doc/**: Final project progress report and presentation
 - **requirements.txt**: Python dependencies
 - **README.md**: Project documentation
 

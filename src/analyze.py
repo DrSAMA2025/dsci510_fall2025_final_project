@@ -1883,6 +1883,7 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
 
     plt.title('PubMed Publication Trends: MASLD Research Evolution', fontweight='bold')
     plt.ylabel('Monthly Publications')
+    plt.xlabel('Date')
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -1941,10 +1942,20 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
     plt.bar(x + width / 2, [event_data['Resmetirom'][1], event_data['GLP-1'][1]],
             width, label='After Approval', alpha=0.7)
 
-    # ADD SIGNIFICANCE ANNOTATIONS
+    # Calculate proper y-limits for asterisk positioning
+    max_value = max(event_data['Resmetirom'] + event_data['GLP-1'])
+    y_margin = max_value * 0.15  # 15% margin for asterisks
+
+    # Set y-axis limits to accommodate asterisks within the plot
+    plt.ylim(0, max_value + y_margin)
+
+    # ADD SIGNIFICANCE ANNOTATIONS WITH PROPER POSITIONING
     for i, (drug, p_val) in enumerate([('Resmetirom', resmetirom_p_value), ('GLP-1', glp1_p_value)]):
         if p_val < 0.05:
-            plt.text(i, max(event_data[drug]) * 1.1, '*', ha='center', va='bottom',
+            # Position asterisk within the plot boundaries
+            bar_height = max(event_data[drug])
+            asterisk_y = bar_height + (y_margin * 0.3)  # Position within the margin
+            plt.text(i, asterisk_y, '*', ha='center', va='bottom',
                      fontsize=20, fontweight='bold', color='red')
 
     plt.title('FDA Approval Impact on Publication Volume', fontweight='bold')
