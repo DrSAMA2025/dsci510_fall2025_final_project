@@ -55,7 +55,7 @@ def process_stock_data(df):
 
     # The data still has MultiIndex columns, so let's flatten them first
     if isinstance(df.columns, pd.MultiIndex):
-        df.columns = ['_'.join(col).strip() for col in df.columns.values]
+        df.columns = [f"{col[0]}_{col[1]}" for col in df.columns]
 
     # Now the columns are flattened like: 'MDGL_Close', 'NVO_Close', etc.
     print(f"Flattened columns: {df.columns.tolist()}")
@@ -163,7 +163,7 @@ def run_all_data_processors():
         processed_data['stocks'] = process_stock_data(df_stocks_raw)
 
     # 3. Reddit Data (Timestamped file)
-    df_reddit_raw = load_data("reddit_data_latest.csv", is_timestamped=False)
+    df_reddit_raw = load_data(REDDIT_DATA_FILE_BASE, is_timestamped=True)
     if df_reddit_raw is not None:
         processed_data['reddit'] = process_reddit_data(df_reddit_raw)
 

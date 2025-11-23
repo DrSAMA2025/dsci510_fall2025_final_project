@@ -34,7 +34,6 @@ from config import (
 sns.set_theme(style=PLOT_STYLE)
 plt.rcParams['figure.figsize'] = (12, 6)
 
-
 def ensure_result_subdirs():
     """Ensures all necessary subdirectories in the results folder exist."""
     subdirs = [
@@ -47,8 +46,37 @@ def ensure_result_subdirs():
     for subdir in subdirs:
         (RESULTS_DIR / subdir).mkdir(exist_ok=True, parents=True)
 
+# =============================================================================
+# MASLD AWARENESS TRACKER - CENTRALIZED ANALYSIS MODULE
+# =============================================================================
+# This file contains all analysis functions organized by data source:
+#
+# SECTION 1: GOOGLE TRENDS ANALYSIS
+#   - analyze_google_trends(): Basic timeline visualization
+#   - advanced_google_trends_analysis(): Statistical impact analysis
+#   - validate_statistical_assumptions(): Assumption testing for trends
+#   - analyze_trends_seasonal_decomposition(): Seasonal pattern analysis
+#   - non_parametric_validation(): Non-parametric statistical tests
+#
+# SECTION 2: REDDIT ANALYSIS
+#   - Sentiment analysis, topic modeling, network analysis, temporal patterns
+#   - Cross-platform correlation with Google Trends
+#
+# SECTION 3: PUBMED ANALYSIS
+#   - Publication rate analysis and statistical testing
+#
+# SECTION 4: STOCK ANALYSIS
+#   - Event studies, volatility analysis, cross-platform correlations
+#
+# SECTION 5: MEDIA CLOUD ANALYSIS
+#   - Timeline analysis, source concentration, topic propagation
+#
+# All functions follow the pattern: basic_analysis() and advanced_analysis()
+# =============================================================================
 
-# --- Analysis Functions ---
+# =============================================================================
+# SECTION 1: GOOGLE TRENDS ANALYSIS
+# =============================================================================
 
 def analyze_google_trends(df_trends: pd.DataFrame, notebook_plot=False):
     """Generates a time series plot of all search terms."""
@@ -561,6 +589,12 @@ def non_parametric_validation(df_trends, event_date, terms, window_days=30):
 
     return results
 
+# =============================================================================
+# SECTION 2: REDDIT ANALYSIS
+# =============================================================================
+# Includes: Sentiment analysis, topic modeling, network analysis,
+# temporal patterns, and cross-platform correlations
+# =============================================================================
 
 def analyze_reddit_sentiment(df_reddit: pd.DataFrame, notebook_plot=False):
     """Analyzes and visualizes Reddit sentiment over time."""
@@ -695,7 +729,7 @@ def validate_statistical_assumptions(df_reddit, event_impacts):
     }
 
 
-def calculate_effect_sizes(event_impacts):
+def calculate_effect_sizes(event_impacts, alpha=0.05):
     """Calculate and interpret effect sizes for FDA event impacts"""
     print("\n" + "=" * 40)
     print("EFFECT SIZE ANALYSIS")
@@ -713,8 +747,16 @@ def calculate_effect_sizes(event_impacts):
         if 'pre_std' in impact and 'post_std' in impact:
             s1, s2 = impact['pre_std'], impact['post_std']
         else:
-            # Conservative estimate: assume moderate variability
-            s1 = s2 = 0.2  # Reasonable estimate for sentiment scores
+            # Calculate standard deviations from available data instead of hardcoding
+            # Use the actual standard deviation of sentiment scores if available in the impact data
+            if 'pre_sentiment_scores' in impact and 'post_sentiment_scores' in impact:
+                s1 = impact['pre_sentiment_scores'].std()
+                s2 = impact['post_sentiment_scores'].std()
+            else:
+                # Fallback: estimate from the mean difference and sample sizes
+                # This is better than a hardcoded value
+                pooled_variance = (impact['change_absolute'] ** 2) / 4  # Rough estimate
+                s1 = s2 = sqrt(pooled_variance) if pooled_variance > 0 else 0.1
 
         # Simple Cohen's d approximation for Welch's t-test
         cohens_d = impact['change_absolute'] / sqrt((s1 ** 2 + s2 ** 2) / 2)
@@ -792,6 +834,8 @@ def advanced_reddit_sentiment_analysis(df_reddit: pd.DataFrame, notebook_plot=Fa
                 'change_absolute': post_period['sentiment_score'].mean() - pre_period['sentiment_score'].mean(),
                 'pre_count': len(pre_period),
                 'post_count': len(post_period)
+                'pre_std': pre_period['sentiment_score'].std(),
+                'post_std': post_period['sentiment_score'].std()
             }
     # Statistical Assumption Validation
     assumption_results = validate_statistical_assumptions(df_reddit, event_impacts)
@@ -1718,6 +1762,11 @@ if all(var in locals() for var in
         correlation_results
     )
 
+# =============================================================================
+# SECTION 3: PUBMED ANALYSIS
+# =============================================================================
+# Analyzes publication patterns and FDA approval impacts on research
+# =============================================================================
 
 def analyze_pubmed_publication_rate(df_pubmed: pd.DataFrame, notebook_plot=False):
     """Analyzes and visualizes PubMed publication rates for MASLD+drug combinations."""
@@ -2023,6 +2072,12 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
         'total_publications': len(df_pubmed)
     }
 
+# =============================================================================
+# SECTION 4: STOCK ANALYSIS
+# =============================================================================
+# Event studies, volatility analysis, and cross-platform correlations
+# for MDGL (Resmetirom) and NVO (GLP-1) stocks
+# =============================================================================
 
 def analyze_stock_and_events(df_stocks: pd.DataFrame, notebook_plot=False):
     """Analyzes stock movement relative to the key FDA event."""
@@ -2737,6 +2792,12 @@ def cross_platform_correlation_analysis(processed_data: dict, notebook_plot=Fals
 
     return correlation_results
 
+# =============================================================================
+# SECTION 5: MEDIA CLOUD ANALYSIS
+# =============================================================================
+# Media coverage analysis: timelines, source concentration,
+# and topic propagation between disease and drug coverage
+# =============================================================================
 
 def analyze_media_cloud_timeline(notebook_plot=False):
     """Create comparative timeline plot showing Media Cloud coverage trends."""
@@ -3732,6 +3793,11 @@ def advanced_media_cloud_topic_propagation(notebook_plot=False):
         'time_series_data': aligned_series
     }
 
+# =============================================================================
+# ANALYSIS ORCHESTRATION
+# =============================================================================
+# Master function to run all analyses and helper utilities
+# =============================================================================
 
 def run_all_analysis(processed_data: dict):
     """Runs all analysis and visualization functions."""

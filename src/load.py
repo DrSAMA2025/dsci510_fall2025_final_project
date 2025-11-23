@@ -119,41 +119,48 @@ def get_pubmed_data(email="test@example.com"):
 
         article_data = []
         if id_list:
-            # WORKAROUND: Import datetime right before the problematic Entrez.read()
-            import datetime
-            from datetime import datetime
+            # Use ElementTree for XML parsing
+            import xml.etree.ElementTree as ET
 
             fetch_handle = Entrez.efetch(db="pubmed", id=id_list, rettype="xml", retmode="xml")
-
-            # WORKAROUND: Force datetime into the global scope for Entrez.read()
-            import builtins
-            if not hasattr(builtins, 'datetime'):
-                builtins.datetime = datetime
-
-            articles = Entrez.read(fetch_handle)
+            xml_content = fetch_handle.read()
             fetch_handle.close()
 
-            for pubmed_article in articles['PubmedArticle']:
-                medline_citation = pubmed_article['MedlineCitation']
-                article = medline_citation['Article']
+            # Parse XML content directly
+            root = ET.fromstring(xml_content)
 
-                # Extracting details
-                title = article.get('ArticleTitle', 'No Title')
-                abstract = article.get('Abstract', {}).get('AbstractText', ['No Abstract'])
-                abstract = ' '.join(abstract) if isinstance(abstract, list) else abstract
+            for pubmed_article in root.findall('.//PubmedArticle'):
+                # Extract PubMed ID
+                pmid_element = pubmed_article.find('.//PMID')
+                pubmed_id = pmid_element.text if pmid_element is not None else 'N/A'
 
-                # Date extraction logic can be complex; simplified here
-                pub_date = article.get('Journal', {}).get('JournalIssue', {}).get('PubDate', {})
-                year = pub_date.get('Year', 'N/A')
-                month = pub_date.get('Month', 'N/A')
+                # Extract title
+                title_element = pubmed_article.find('.//ArticleTitle')
+                title = title_element.text if title_element is not None else 'No Title'
+
+                # Extract abstract
+                abstract_elements = pubmed_article.findall('.//AbstractText')
+                abstract = ' '.join(
+                    [elem.text for elem in abstract_elements if elem.text]) if abstract_elements else 'No Abstract'
+
+                # Extract journal
+                journal_element = pubmed_article.find('.//Journal/Title')
+                journal = journal_element.text if journal_element is not None else 'N/A'
+
+                # Extract publication date
+                year_element = pubmed_article.find('.//PubDate/Year')
+                year = year_element.text if year_element is not None else 'N/A'
+
+                month_element = pubmed_article.find('.//PubDate/Month')
+                month = month_element.text if month_element is not None else 'N/A'
 
                 article_data.append({
-                    'pubmed_id': medline_citation['PMID'],
+                    'pubmed_id': pubmed_id,
                     'title': title,
                     'abstract': abstract,
                     'publication_year': year,
                     'publication_month': month,
-                    'journal': article.get('Journal', {}).get('Title', 'N/A'),
+                    'journal': journal,
                 })
 
         df_pubmed = pd.DataFrame(article_data)
@@ -300,24 +307,26 @@ def ensure_data_available():
     download_from_gdrive(GDRIVE_GOOGLE_TRENDS_URL, DATA_DIR / GOOGLE_TRENDS_FILE)
     download_from_gdrive(GDRIVE_STOCK_DATA_URL, DATA_DIR / STOCK_DATA_FILE)
 
-    # SPECIAL HANDLING FOR REDDIT: Only download if we don't have good data
-    reddit_path = DATA_DIR / "reddit_data_latest.csv"
-    if reddit_path.exists():
-        try:
-            df_test = pd.read_csv(reddit_path)
-            # Check if it has proper column structure
-            if 'post_text' in df_test.columns and 'post_title' in df_test.columns:
-                print("Using existing clean Reddit data")
-            else:
-                print("Existing Reddit data is corrupt, downloading fresh...")
-                download_from_gdrive(GDRIVE_REDDIT_DATA_URL, reddit_path)
-        except:
-            print("Error checking Reddit data, downloading fresh...")
-            download_from_gdrive(GDRIVE_REDDIT_DATA_URL, reddit_path)
+    # STANDARDIZED REDDIT DATA HANDLING: Use timestamped naming convention
+    from utils import get_latest_data_filepath
+
+    # Check if we already have any Reddit data files
+    existing_reddit_files = list(DATA_DIR.glob("reddit_data_*.csv"))
+    if existing_reddit_files:
+        print("Using existing Reddit data files")
     else:
+        print("No Reddit data found, downloading from Google Drive...")
+        # Download to a timestamped file name to match API convention
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        reddit_path = DATA_DIR / f"reddit_data_{timestamp}.csv"
         download_from_gdrive(GDRIVE_REDDIT_DATA_URL, reddit_path)
 
-    download_from_gdrive(GDRIVE_PUBMED_DATA_URL, DATA_DIR / "pubmed_data_latest.csv")
+    # Standardize PubMed fallback naming
+    existing_pubmed_files = list(DATA_DIR.glob("pubmed_masld_articles_*.csv"))
+    if not existing_pubmed_files:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        pubmed_path = DATA_DIR / f"pubmed_masld_articles_{timestamp}.csv"
+        download_from_gdrive(GDRIVE_PUBMED_DATA_URL, pubmed_path)
 
     # Download and extract Media Cloud data
     download_media_cloud_data()

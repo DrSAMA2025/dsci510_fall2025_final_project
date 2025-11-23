@@ -109,23 +109,11 @@ def process_submission(submission, search_term=None):
 # ==============================================================================
 
 def get_latest_timestamp_filepath(base_name: str) -> Path:
-    """Generates a timestamped filepath for saving data."""
+    """Generates a timestamped filepath for saving data using consistent naming."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
-    # Format dates as strings without dashes for filenames
-    start_date_str = STUDY_START_DATE.strftime("%Y%m%d")
-    end_date_str = STUDY_END_DATE.strftime("%Y%m%d")
-
-    filename = f"{base_name}{start_date_str}_{end_date_str}_{timestamp}.csv"
-
-    # Ensure all file names are correctly standardized for saving
-    if base_name == PUBMED_DATA_FILE_BASE:
-        filename = f"{PUBMED_DATA_FILE_BASE}{timestamp}.csv"
-    elif base_name == REDDIT_DATA_FILE_BASE:
-        filename = f"{REDDIT_DATA_FILE_BASE}{start_date_str}_{end_date_str}_{timestamp}.csv"
-    else:
-        # For non-timestamped files like stock/trends, return the configured name
-        return DATA_DIR / base_name
+    # Use consistent naming: base_name + timestamp for ALL files
+    filename = f"{base_name}{timestamp}.csv"
 
     return DATA_DIR / filename
 

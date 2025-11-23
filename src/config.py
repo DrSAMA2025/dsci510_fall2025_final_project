@@ -26,7 +26,7 @@ load_dotenv(dotenv_path=Path(__file__).parent / '.env')
 # API Keys/Secrets - Access these from other scripts using import config
 REDDIT_CLIENT_ID = os.environ.get("REDDIT_CLIENT_ID")
 REDDIT_CLIENT_SECRET = os.environ.get("REDDIT_CLIENT_SECRET")
-REDDIT_USER_AGENT = os.environ.get("REDDIT_USER_AGENT", "masld_research_bot_v1.0")
+REDDIT_USER_AGENT = os.environ.get("REDDIT_USER_AGENT", "dsci510_final_project_v1.0")
 
 # ==============================================================================
 # 3. PROJECT DATASETS & RESULTS CONFIGURATION
@@ -39,8 +39,8 @@ REDDIT_DATA_FILE_BASE = "reddit_data_"
 PUBMED_DATA_FILE_BASE = "pubmed_masld_articles_"
 
 # File patterns that match my actual file naming conventions
-REDDIT_DATA_PATTERN = "reddit_data_2023_2025_*.csv"  # Matches: reddit_data_2023_2025_YYYYMMDD_HHMM.csv
-PUBMED_DATA_PATTERN = "pubmed_masld_articles_*.csv"  # Matches: pubmed_masld_articles_YYYYMMDD_HHMMSS.csv
+REDDIT_DATA_PATTERN = "reddit_data_*.csv"  # Matches: reddit_data_YYYYMMDD_HHMM.csv
+PUBMED_DATA_PATTERN = "pubmed_masld_articles_*.csv"  # Matches: pubmed_masld_articles_YYYYMMDD_HHMM.csv
 
 # --- Analysis Subdirectories ---
 GOOGLE_TRENDS_ANALYSIS_SUBDIR = "google_trends"

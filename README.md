@@ -206,7 +206,7 @@ jupyter notebook src/results.ipynb
 ### Summary of the Results
 - **Basic EDA insights** revealed pharmacy (1,993 posts), Ozempic (1,872 posts), and MASH (1,089 posts) as the most active subreddits
 - **Text analysis** showed varied post lengths with comprehensive patient discussions averaging substantial content depth
-- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) but revealing large effect size for Resmetirom (Cohen's d = -0.896)
+- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) but revealing large negative effect size for Resmetirom (Cohen's d = -0.896)
 - **Topic modeling revealed 5 key discussion themes**: Personal experiences (44.9%), Drug treatments (33.4%), Liver disease discussions (14.1%), Information seeking (5.0%), and Private discussions (2.5%)
 - **Temporal patterns identified** peak discussion times at 11:00 AM and Fridays, with significant GLP-1 approval impact (+82.3% discussion increase)
 - **Network analysis showed fully connected MASLD community** with all 12 subreddits equally central in a unified discussion ecosystem (density=1.000, single community detected)

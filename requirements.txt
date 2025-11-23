@@ -23,6 +23,7 @@ lxml>=4.9.0                  # High-performance HTML/XML parser
 matplotlib>=3.7.0
 seaborn>=0.12.0
 jupyter>=1.0.0
+notebook>=6.5.0
 
 # Text Processing & NLP
 vaderSentiment>=3.3.2        # For Reddit sentiment analysis
