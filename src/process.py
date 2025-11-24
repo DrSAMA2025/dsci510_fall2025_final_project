@@ -42,9 +42,9 @@ def process_google_trends(df_or_path):
     df = df.set_index('date').sort_index()
 
     # Normalize data if needed, but for initial analysis, raw scores are fine.
-    # We will simply ensure all trend columns are integer type.
+    # We will keep data as float for statistical precision.
     trend_cols = [col for col in df.columns if col not in ['isPartial']]
-    df[trend_cols] = df[trend_cols].fillna(0).astype(int)
+    df[trend_cols] = df[trend_cols].fillna(0).astype(float)
     print(f"  > Trends data ready. Shape: {df.shape}")
     return df
 

@@ -143,20 +143,37 @@ This test suite validates API connections, data quality, and Google Drive fallba
 - **Terminology Transition Monitoring**: MASLD/NAFLD ratio analysis to track disease nomenclature adoption
 - **Correlation Analysis**: Relationship mapping between disease awareness and drug search interest
 - **Statistical Significance Testing**: T-tests with p-values to validate observed changes in search patterns
+- **Gold-Standard Time Series Analysis**: Interrupted Time Series (ITS) modeling using SARIMAX to account for autocorrelation and temporal dynamics
 
 ### Summary of the Results
 - **Comprehensive search interest tracking** for MASLD, NAFLD, Rezdiffra, Wegovy, and Ozempic across 148 weeks (2023-2025)
 - **Basic time series visualization** showing search trends with FDA approval event markers for both Resmetirom and GLP-1 agonists
-- **Advanced statistical analysis** revealing significant increases after both FDA approvals: MASLD (+4.4 points, p=0.000 Resmetirom; +14.4 points, p=0.000 GLP-1), NAFLD (+1.1 points, p=0.030 Resmetirom; +31.5 points, p=0.001 GLP-1), and Wegovy (+21.8 points, p=0.000 GLP-1)
+- **Advanced statistical analysis** revealing significant increases after GLP-1 approvals: MASLD (+14.4 points, p=0.000), NAFLD (+31.5 points, p=0.001), and Wegovy (+21.8 points, p=0.000)
+- **Resmetirom approval** showed spillover effects on established GLP-1 drugs: Wegovy (+7.8 points, p=0.0053), Ozempic (+19.6 points, p=0.0000)
 - **Strong GLP-1 impact** with Wegovy showing dramatic search increases post-approval (+21.8 points, p=0.000) while Ozempic remained stable (p=0.246)
 - **Data quality insights** showing Rezdiffra had minimal search volume (67% zeros, mean=0.3) compared to established terms
 - **Dual visualization approach** with both basic EDA plots and advanced statistical charts automatically saved and displayed
+
+### Gold-Standard Interrupted Time Series Findings
+- **GLP-1 Agonists Drove MASLD Awareness**: MASLD showed +17.1 point immediate increase (p=0.0000) after GLP-1 approvals
+- **Wegovy Demonstrated Strongest Impact**: +25.6 point surge (p=0.0011) after GLP-1 approvals, with additional +7.8 point spillover (p=0.0053) from Resmetirom approval
+- **Resmetirom Impact More Nuanced**: No significant immediate level change for MASLD (p=0.3835) but positive slope trend (+0.032, p=0.0000)
+- **Critical Insight**: GLP-1 approvals accelerated MASLD terminology adoption more effectively than the dedicated MASLD drug itself
+- **Methodological Correction**: ITS analysis revealed traditional t-tests overestimated Resmetirom's impact on MASLD awareness
 
 ### Advanced Statistical Validation
 - **Assumption Testing**: Stationarity (ADF tests), normality (Shapiro-Wilk), and variance equality (Levene's tests) validated
 - **Non-Parametric Confirmation**: Mann-Whitney U tests confirmed significant findings (MASLD: p=0.0000, NAFLD: p=0.0043, Wegovy: p=0.0000)
 - **Seasonal Decomposition**: Weekly pattern analysis addressing time series non-stationarity
 - **Methodological Rigor**: Consistent results across parametric and non-parametric methods demonstrate robust findings
+- **Gold-Standard Validation**: Interrupted Time Series (ITS) analysis using SARIMAX models provides academic-level rigor
+- **Correlation Validation**: Exceptionally strong MASLD-Wegovy correlation (r=0.93) confirmed disease-drug awareness relationship
+
+### Multi-Layered Statistical Approach
+- **Traditional Methods**: T-tests and correlation analysis for initial insights
+- **Robust Validation**: Non-parametric tests and assumption checking
+- **Gold Standard**: Interrupted Time Series (ITS) for rigorous causal inference
+- **Comprehensive Validation**: Multiple statistical methods ensure robust findings
 
 ### How to Run Google Trends Analysis
 ### Data Collection
@@ -189,6 +206,8 @@ jupyter notebook src/results.ipynb
 - **Correlation Matrix**: `results/google_trends/advanced_google_trends_correlation.png` - Search term relationships
 - **Statistical Table**: `results/google_trends/advanced_google_trends_statistical_table.png` - Comprehensive results summary
 - **Seasonal Decomposition**: `results/google_trends/google_trends_seasonal_decomposition.png` - Advanced time series analysis
+- **Gold-Standard ITS Analysis**: `results/google_trends/google_trends_its_analysis.png` - Interrupted Time Series visualization
+- **ITS Summary**: `results/google_trends/its_analysis_summary.csv` - Complete ITS coefficients and p-values
 - **Statistical Summary**: Console output with p-values and significance markers for both FDA events
 
 ## (2) Reddit Analysis
@@ -206,11 +225,11 @@ jupyter notebook src/results.ipynb
 ### Summary of the Results
 - **Basic EDA insights** revealed pharmacy (1,993 posts), Ozempic (1,872 posts), and MASH (1,089 posts) as the most active subreddits
 - **Text analysis** showed varied post lengths with comprehensive patient discussions averaging substantial content depth
-- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) but revealing large negative effect size for Resmetirom (Cohen's d = -0.896)
-- **Topic modeling revealed 5 key discussion themes**: Personal experiences (44.9%), Drug treatments (33.4%), Liver disease discussions (14.1%), Information seeking (5.0%), and Private discussions (2.5%)
+- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) with small negative effect size for Resmetirom (Cohen's d = -0.305) and negligible effect for GLP-1 (Cohen's d = -0.012)
+- **Topic modeling revealed 5 key discussion themes**: Personal experiences (43.8%), Drug treatments (32.5%), Liver disease discussions (13.7%), Information seeking (5.0%), and Private discussions (2.5%)
 - **Temporal patterns identified** peak discussion times at 11:00 AM and Fridays, with significant GLP-1 approval impact (+82.3% discussion increase)
 - **Network analysis showed fully connected MASLD community** with all 12 subreddits equally central in a unified discussion ecosystem (density=1.000, single community detected)
-- **Strong cross-platform correlation** between Reddit discussions and MASLD searches (r=0.344), with positive relationships for key treatments (Wegovy r=0.312, Rezdiffra r=0.272)
+- **Limited cross-platform alignment** revealed weak correlations between Reddit discussions and search interest (MASLD r=0.344, Wegovy r=0.312, Rezdiffra r=0.272), indicating semi-independent platform behaviors
 - **Drug treatment discussions dominated** with 2,972 posts, reflecting high community interest in pharmaceutical interventions
 
 ### How to Run Reddit Analysis
@@ -239,7 +258,7 @@ python src/analyze.py       # Generates sentiment, topic, temporal, and network 
 jupyter notebook src/results.ipynb
 ```
 ### Output
-- **Sentiment Timeline**: `results/reddit/reddit_basic_sentiment_timeline.png` - Weekly sentiment trends with FDA events
+- **Sentiment Timeline**: `results/reddit/reddit_sentiment_with_confidence_intervals.png` - Weekly sentiment trends with FDA events
 - **Advanced Sentiment Analysis**: 
   - `results/reddit/reddit_sentiment_timeline.png` - Daily sentiment with statistical events
   - `results/reddit/reddit_subreddit_sentiment.png` - Sentiment comparison across subreddits

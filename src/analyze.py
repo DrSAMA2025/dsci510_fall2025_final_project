@@ -132,6 +132,200 @@ def analyze_google_trends(df_trends: pd.DataFrame, notebook_plot=False):
     return fig  # Return the figure object to keep it alive
 
 
+def interrupted_time_series_analysis(df_trends: pd.DataFrame, notebook_plot=False):
+    """Gold-standard ITS analysis for FDA event impacts using SARIMAX"""
+    print("\n[Advanced Analysis] Interrupted Time Series Analysis (Gold Standard)...")
+    save_dir = RESULTS_DIR / GOOGLE_TRENDS_ANALYSIS_SUBDIR
+
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
+    from statsmodels.tsa.stattools import adfuller
+
+    results = {}
+
+    for term in ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']:
+        if term not in df_trends.columns:
+            continue
+
+        print(f"\n--- ITS Analysis for {term} ---")
+        series = df_trends[term].dropna()
+
+        if len(series) < 50:  # Need sufficient data
+            print(f"  Insufficient data points ({len(series)}) for {term}")
+            continue
+
+        # Prepare intervention variables for BOTH FDA events
+        resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
+        glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+
+        # Level change indicators (step functions)
+        level_change_resmetirom = (series.index >= resmetirom_date).astype(int)
+        level_change_glp1 = (series.index >= glp1_date).astype(int)
+
+        # Slope change indicators (ramp functions)
+        slope_change_resmetirom = np.maximum(0, (series.index - resmetirom_date).days)
+        slope_change_glp1 = np.maximum(0, (series.index - glp1_date).days)
+
+        # Combine exogenous variables
+        exog = pd.DataFrame({
+            'level_resmetirom': level_change_resmetirom,
+            'slope_resmetirom': slope_change_resmetirom,
+            'level_glp1': level_change_glp1,
+            'slope_glp1': slope_change_glp1
+        }, index=series.index)
+
+        try:
+            # Fit SARIMAX model (Auto-regressive Integrated Moving Average with eXogenous variables)
+            # Simple model
+            model = SARIMAX(series,
+                            exog=exog,
+                            order=(1, 0, 1),  # AR(1), I(0), MA(1) - good starting point
+                            seasonal_order=(0, 0, 0, 0),  # No seasonality
+                            trend='c')  # Constant trend
+
+            fitted_model = model.fit(disp=False, maxiter=100)
+
+            # Store results
+            results[term] = {
+                'model': fitted_model,
+                'summary': fitted_model.summary(),
+                'params': fitted_model.params,
+                'pvalues': fitted_model.pvalues,
+                'level_change_resmetirom': fitted_model.params.get('level_resmetirom', 0),
+                'slope_change_resmetirom': fitted_model.params.get('slope_resmetirom', 0),
+                'level_change_glp1': fitted_model.params.get('level_glp1', 0),
+                'slope_change_glp1': fitted_model.params.get('slope_glp1', 0),
+                'level_resmetirom_p': fitted_model.pvalues.get('level_resmetirom', 1),
+                'slope_resmetirom_p': fitted_model.pvalues.get('slope_resmetirom', 1),
+                'level_glp1_p': fitted_model.pvalues.get('level_glp1', 1),
+                'slope_glp1_p': fitted_model.pvalues.get('slope_glp1', 1)
+            }
+
+            print(
+                f"  Level Change Resmetirom: {results[term]['level_change_resmetirom']:.3f} (p={results[term]['level_resmetirom_p']:.4f})")
+            print(
+                f"  Slope Change Resmetirom: {results[term]['slope_change_resmetirom']:.3f} (p={results[term]['slope_resmetirom_p']:.4f})")
+            print(
+                f"  Level Change GLP-1: {results[term]['level_change_glp1']:.3f} (p={results[term]['level_glp1_p']:.4f})")
+            print(
+                f"  Slope Change GLP-1: {results[term]['slope_change_glp1']:.3f} (p={results[term]['slope_glp1_p']:.4f})")
+
+        except Exception as e:
+            print(f"  SARIMAX fitting failed for {term}: {e}")
+            continue
+
+    # Create ITS visualization
+    if results:
+        create_its_visualization(df_trends, results, save_dir, notebook_plot)
+
+    return results
+
+
+def create_its_visualization(df_trends, its_results, save_dir, notebook_plot=False):
+    """Create comprehensive ITS visualization"""
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.flatten()
+
+    key_terms = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy']
+
+    for i, term in enumerate(key_terms):
+        if i >= len(axes) or term not in its_results:
+            continue
+
+        ax = axes[i]
+        series = df_trends[term].dropna()
+
+        # Plot actual data
+        ax.plot(series.index, series.values, 'b-', alpha=0.7, label='Actual', linewidth=1)
+
+        # Get model predictions
+        model = its_results[term]['model']
+        predicted = model.predict()
+
+        # Plot fitted values
+        ax.plot(predicted.index, predicted.values, 'r-', alpha=0.8, label='Fitted', linewidth=1.5)
+
+        # Add FDA event lines
+        resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
+        glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+
+        ax.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, label='Resmetirom FDA')
+        ax.axvline(glp1_date, color='orange', linestyle='--', alpha=0.7, label='GLP-1 FDA')
+
+        # Add significance annotations
+        sig_text = []
+        if its_results[term]['level_resmetirom_p'] < 0.05:
+            sig_text.append(f"Resmetirom Level: *")
+        if its_results[term]['level_glp1_p'] < 0.05:
+            sig_text.append(f"GLP-1 Level: *")
+
+        if sig_text:
+            ax.text(0.02, 0.98, '\n'.join(sig_text), transform=ax.transAxes,
+                    verticalalignment='top', fontsize=10, bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+        ax.set_title(f'{term} - ITS Analysis\n(* = significant level change)', fontweight='bold')
+        ax.set_ylabel('Search Volume')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    save_path = save_dir / "google_trends_its_analysis.png"
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"  > Saved ITS analysis to: {save_path.name}")
+
+    if notebook_plot:
+        plt.show()
+
+    # Create summary table
+    create_its_summary_table(its_results, save_dir)
+
+
+def create_its_summary_table(its_results, save_dir):
+    """Create summary table of ITS results"""
+    summary_data = []
+
+    for term, result in its_results.items():
+        summary_data.append({
+            'Term': term,
+            'Level_Change_Resmetirom': f"{result['level_change_resmetirom']:.3f}",
+            'Level_Resmetirom_P': f"{result['level_resmetirom_p']:.4f}",
+            'Level_Resmetirom_Sig': '*' if result['level_resmetirom_p'] < 0.05 else '',
+            'Slope_Change_Resmetirom': f"{result['slope_change_resmetirom']:.3f}",
+            'Slope_Resmetirom_P': f"{result['slope_resmetirom_p']:.4f}",
+            'Level_Change_GLP1': f"{result['level_change_glp1']:.3f}",
+            'Level_GLP1_P': f"{result['level_glp1_p']:.4f}",
+            'Level_GLP1_Sig': '*' if result['level_glp1_p'] < 0.05 else '',
+            'Slope_Change_GLP1': f"{result['slope_change_glp1']:.3f}",
+            'Slope_GLP1_P': f"{result['slope_glp1_p']:.4f}"
+        })
+
+    if summary_data:
+        summary_df = pd.DataFrame(summary_data)
+
+        # Save as CSV
+        csv_path = save_dir / "its_analysis_summary.csv"
+        summary_df.to_csv(csv_path, index=False)
+        print(f"  > Saved ITS summary table to: {csv_path.name}")
+
+        # Create visualization table
+        plt.figure(figsize=(12, 4))
+        plt.axis('off')
+        table = plt.table(cellText=summary_df.values,
+                          colLabels=summary_df.columns,
+                          cellLoc='center',
+                          loc='center',
+                          bbox=[0.1, 0.1, 0.8, 0.8])
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 2)
+        plt.title('Interrupted Time Series Analysis Summary\n(* = statistically significant)',
+                  fontweight='bold', pad=20)
+
+        table_path = save_dir / "its_analysis_summary_table.png"
+        plt.savefig(table_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"  > Saved ITS summary table visualization to: {table_path.name}")
+
+
 def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False):
     """Advanced statistical analysis of Google Trends data for both FDA events"""
     print("Data Quality Check:")
@@ -348,6 +542,15 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
         if not notebook_plot: plt.close()
         print(f"  > Saved statistical table to: {table_path.name}")
 
+    # Gold-standard Interrupted Time Series (ITS) analysis
+    its_results = interrupted_time_series_analysis(df_trends, notebook_plot)
+
+    # 4. Gold-standard ITS analysis
+    print("\n" + "="*60)
+    print("GOLD-STANDARD ANALYSIS: Interrupted Time Series (ITS)")
+    print("="*60)
+    its_results = interrupted_time_series_analysis(df_trends, notebook_plot)
+
     # Display in notebook if requested
     if notebook_plot:
         plt.show()
@@ -358,7 +561,8 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
         'resmetirom_impact': significant_changes_resmetirom,
         'glp1_impact': significant_changes_glp1,
         'combined_impact_analysis': impact_df,
-        'terminology_analysis': terminology_analysis
+        'terminology_analysis': terminology_analysis,
+        'its_analysis': its_results
     }
 
 
@@ -833,7 +1037,7 @@ def advanced_reddit_sentiment_analysis(df_reddit: pd.DataFrame, notebook_plot=Fa
                 'post_mean': post_period['sentiment_score'].mean(),
                 'change_absolute': post_period['sentiment_score'].mean() - pre_period['sentiment_score'].mean(),
                 'pre_count': len(pre_period),
-                'post_count': len(post_period)
+                'post_count': len(post_period),
                 'pre_std': pre_period['sentiment_score'].std(),
                 'post_std': post_period['sentiment_score'].std()
             }
