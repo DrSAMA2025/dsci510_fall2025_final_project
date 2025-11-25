@@ -75,8 +75,11 @@ def get_reddit_data():
             # 1. Collect direct posts from subreddit (no search)
             if not search_terms:
                 print(f"  > Collecting hot posts from r/{subreddit_name}...")
-                for submission in subreddit.hot(limit=100):  # Limit to 100 posts for a quick run
-                    all_data.append(process_submission(submission, search_term=None))
+                for submission in subreddit.hot(limit=100):
+                    processed_list = process_submission(submission, search_term=None)
+                    if processed_list is not None:
+                        # FIX: Extend the list, don't append the list itself
+                        all_data.extend(processed_list)
 
             # 2. Collect posts matching search terms within the subreddit
             else:
@@ -84,12 +87,23 @@ def get_reddit_data():
                     print(f"  > Searching r/{subreddit_name} for term: '{term}'...")
                     for submission in subreddit.search(
                             query=term,
-                            limit=50,  # Limit search results
+                            limit=50,
                             time_filter='all'
                     ):
-                        all_data.append(process_submission(submission, search_term=term))
+                        processed_list = process_submission(submission, search_term=term)
+                        if processed_list is not None:
+                            # Extend the list, don't append the list itself
+                            all_data.extend(processed_list)
 
-        df_reddit = pd.DataFrame([d for d in all_data if d is not None])
+        # Create proper DataFrame with flat structure
+        df_reddit = pd.DataFrame(all_data)
+
+        # Remove any duplicate posts by post_id
+        if 'post_id' in df_reddit.columns:
+            df_reddit = df_reddit.drop_duplicates(subset=['post_id'])
+
+        print(f"  > Collected {len(df_reddit)} Reddit posts")
+        print(f"  > Columns: {df_reddit.columns.tolist()}")
 
         save_path = get_latest_timestamp_filepath(REDDIT_DATA_FILE_BASE)
         df_reddit.to_csv(save_path, index=False)

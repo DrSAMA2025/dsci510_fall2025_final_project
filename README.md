@@ -148,18 +148,21 @@ This test suite validates API connections, data quality, and Google Drive fallba
 ### Summary of the Results
 - **Comprehensive search interest tracking** for MASLD, NAFLD, Rezdiffra, Wegovy, and Ozempic across 148 weeks (2023-2025)
 - **Basic time series visualization** showing search trends with FDA approval event markers for both Resmetirom and GLP-1 agonists
-- **Advanced statistical analysis** revealing significant increases after GLP-1 approvals: MASLD (+14.4 points, p=0.000), NAFLD (+31.5 points, p=0.001), and Wegovy (+21.8 points, p=0.000)
-- **Resmetirom approval** showed spillover effects on established GLP-1 drugs: Wegovy (+7.8 points, p=0.0053), Ozempic (+19.6 points, p=0.0000)
-- **Strong GLP-1 impact** with Wegovy showing dramatic search increases post-approval (+21.8 points, p=0.000) while Ozempic remained stable (p=0.246)
+- **Data Quality Validation**: MASLD showed reliable search volume (16.9% zeros), while Rezdiffra was excluded from statistical analysis due to insufficient search volume (66.9% zeros)
 - **Data quality insights** showing Rezdiffra had minimal search volume (67% zeros, mean=0.3) compared to established terms
+- **Advanced statistical analysis** revealing significant increases after GLP-1 approvals: MASLD (+14.4 points, p=0.000), NAFLD (+31.5 points, p=0.001), and Wegovy (+21.8 points, p=0.000)
+- **Resmetirom approval impact**: Significant increases in MASLD (+4.4 points, p=0.000) and NAFLD (+1.1 points, p=0.030) search interest
+- **Strong GLP-1 impact** with Wegovy showing dramatic search increases post-approval (+21.8 points, p=0.000) while Ozempic remained stable (p=0.246)
+- **Methodological rigor**: Data quality checks ensured statistical analysis focused only on reliable search terms with sufficient public interest
 - **Dual visualization approach** with both basic EDA plots and advanced statistical charts automatically saved and displayed
 
 ### Gold-Standard Interrupted Time Series Findings
 - **GLP-1 Agonists Drove MASLD Awareness**: MASLD showed +17.1 point immediate increase (p=0.0000) after GLP-1 approvals
 - **Wegovy Demonstrated Strongest Impact**: +25.6 point surge (p=0.0011) after GLP-1 approvals, with additional +7.8 point spillover (p=0.0053) from Resmetirom approval
+- **Ozempic Showed Complex Patterns**: Significant level changes after both Resmetirom (+19.6 points, p=0.0000) and GLP-1 approvals (+19.4 points, p=0.0063)
 - **Resmetirom Impact More Nuanced**: No significant immediate level change for MASLD (p=0.3835) but positive slope trend (+0.032, p=0.0000)
 - **Critical Insight**: GLP-1 approvals accelerated MASLD terminology adoption more effectively than the dedicated MASLD drug itself
-- **Methodological Correction**: ITS analysis revealed traditional t-tests overestimated Resmetirom's impact on MASLD awareness
+- **Methodological Rigor**: ITS analysis provided gold-standard validation of search trend impacts
 
 ### Advanced Statistical Validation
 - **Assumption Testing**: Stationarity (ADF tests), normality (Shapiro-Wilk), and variance equality (Levene's tests) validated
@@ -168,6 +171,12 @@ This test suite validates API connections, data quality, and Google Drive fallba
 - **Methodological Rigor**: Consistent results across parametric and non-parametric methods demonstrate robust findings
 - **Gold-Standard Validation**: Interrupted Time Series (ITS) analysis using SARIMAX models provides academic-level rigor
 - **Correlation Validation**: Exceptionally strong MASLD-Wegovy correlation (r=0.93) confirmed disease-drug awareness relationship
+
+### Data Quality & Methodological Improvements
+- **Data Quality Assessment**: Automated zero-analysis identified terms with insufficient search volume for reliable statistical analysis
+- **Selective Statistical Testing**: Only terms with <50% zero values included in advanced statistical models (MASLD: 16.9% zeros, Rezdiffra: 66.9% zeros excluded)
+- **Robust Analysis Pipeline**: Data quality checks prevent statistical artifacts and ensure scientifically valid findings
+- **Transparent Limitations**: Clear acknowledgment of emerging terminology search volume limitations
 
 ### Multi-Layered Statistical Approach
 - **Traditional Methods**: T-tests and correlation analysis for initial insights
@@ -228,13 +237,14 @@ jupyter notebook src/results.ipynb
 - **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) with small negative effect size for Resmetirom (Cohen's d = -0.305) and negligible effect for GLP-1 (Cohen's d = -0.012)
 - **Topic modeling revealed 5 key discussion themes**: Personal experiences (43.8%), Drug treatments (32.5%), Liver disease discussions (13.7%), Information seeking (5.0%), and Private discussions (2.5%)
 - **Temporal patterns identified** peak discussion times at 11:00 AM and Fridays, with significant GLP-1 approval impact (+82.3% discussion increase)
+- **Resmetirom approval impact** showed -30.8% decrease in discussion volume (39 → 27 posts), indicating muted community response to MASLD-specific treatment
 - **Network analysis showed fully connected MASLD community** with all 12 subreddits equally central in a unified discussion ecosystem (density=1.000, single community detected)
 - **Limited cross-platform alignment** revealed weak correlations between Reddit discussions and search interest (MASLD r=0.344, Wegovy r=0.312, Rezdiffra r=0.272), indicating semi-independent platform behaviors
 - **Drug treatment discussions dominated** with 2,972 posts, reflecting high community interest in pharmaceutical interventions
 
 ### How to Run Reddit Analysis
 
-### Data Collection
+~~### Data Collection
 ```bash
 # Automatic API collection
 python src/load.py          # Fetches Reddit data via Pushshift API
@@ -271,7 +281,7 @@ jupyter notebook src/results.ipynb
 
 ## (3) PubMed Analysis
 
-### PubMed Analysis Components
+### PubMed Analysis Components~~
 - **Publication Trend Analysis**: Monthly publication counts for MASLD research with FDA event tracking
 - **Research Focus Tracking**: Disease-drug combination analysis (MASLD + Resmetirom vs MASLD + GLP-1)
 - **Journal Distribution Analysis**: Top publishing journals and research outlets

@@ -222,10 +222,10 @@ def interrupted_time_series_analysis(df_trends: pd.DataFrame, notebook_plot=Fals
 
 def create_its_visualization(df_trends, its_results, save_dir, notebook_plot=False):
     """Create comprehensive ITS visualization"""
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
     axes = axes.flatten()
 
-    key_terms = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy']
+    key_terms = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
 
     for i, term in enumerate(key_terms):
         if i >= len(axes) or term not in its_results:
@@ -328,35 +328,64 @@ def create_its_summary_table(its_results, save_dir):
 
 def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False):
     """Advanced statistical analysis of Google Trends data for both FDA events"""
-    print("Data Quality Check:")
+    print("\n" + "=" * 60)
+    print("GOOGLE TRENDS DATA QUALITY ASSESSMENT")
+    print("=" * 60)
+
+    # Data quality assessment
+    data_quality = {}
+    reliable_terms = []
+    unreliable_terms = []
+
     for col in ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']:
         if col in df_trends.columns:
             unique_vals = df_trends[col].nunique()
             zero_pct = (df_trends[col] == 0).mean() * 100
-            print(f"  {col}: {unique_vals} unique values, {zero_pct:.1f}% zeros")
+            data_quality[col] = {'unique_vals': unique_vals, 'zero_pct': zero_pct}
+
+            if zero_pct < 50:  # Reliable if less than 50% zeros
+                reliable_terms.append(col)
+                status = "RELIABLE"
+            else:
+                unreliable_terms.append(col)
+                status = "UNRELIABLE (excluded from statistical analysis)"
+
+            print(f"  {col}: {unique_vals} unique values, {zero_pct:.1f}% zeros - {status}")
+
+    print(f"\nANALYSIS FOCUS: {reliable_terms}")
+    print(f"DATA LIMITATIONS: {unreliable_terms} have insufficient search volume")
+
+    # Only analyze reliable terms
+    if not reliable_terms:
+        print("WARNING: No reliable terms for analysis")
+        return None
+
+    df_reliable = df_trends[reliable_terms].copy()
     print("\n[Advanced Analysis] Google Trends Statistical Analysis...")
     save_dir = RESULTS_DIR / GOOGLE_TRENDS_ANALYSIS_SUBDIR
 
-    # [Keep all the statistical calculation code the same as before...]
     # 1. Calculate cross-correlations between search terms
-    correlation_matrix = df_trends[['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']].corr()
+    correlation_matrix = df_reliable.corr()
 
-    # Enhanced terminology analysis
-    df_working = df_trends.copy()
-    df_working['MASLD_NAFLD_Ratio'] = df_working['MASLD'] / (df_working['NAFLD'] + 0.1)
-
-    # Calculate ratio trends around both FDA events
+    # Enhanced terminology analysis (only if both terms are reliable)
     terminology_analysis = {}
-    for event_name, event_date in FDA_EVENT_DATES.items():
-        event_date = pd.to_datetime(event_date)
-        pre_ratio = df_working[df_working.index < event_date]['MASLD_NAFLD_Ratio'].tail(30).mean()
-        post_ratio = df_working[df_working.index > event_date]['MASLD_NAFLD_Ratio'].head(30).mean()
+    if 'MASLD' in reliable_terms and 'NAFLD' in reliable_terms:
+        df_working = df_trends.copy()
+        df_working['MASLD_NAFLD_Ratio'] = df_working['MASLD'] / (df_working['NAFLD'] + 0.1)
 
-        terminology_analysis[event_name] = {
-            'pre_ratio': pre_ratio,
-            'post_ratio': post_ratio,
-            'ratio_change': ((post_ratio - pre_ratio) / (pre_ratio + 1e-10)) * 100
-        }
+        for event_name, event_date in FDA_EVENT_DATES.items():
+            event_date = pd.to_datetime(event_date)
+            pre_ratio = df_working[df_working.index < event_date]['MASLD_NAFLD_Ratio'].tail(30).mean()
+            post_ratio = df_working[df_working.index > event_date]['MASLD_NAFLD_Ratio'].head(30).mean()
+
+            terminology_analysis[event_name] = {
+                'pre_ratio': pre_ratio,
+                'post_ratio': post_ratio,
+                'ratio_change': ((post_ratio - pre_ratio) / (pre_ratio + 1e-10)) * 100
+            }
+    else:
+        print("  > Terminology transition analysis skipped: MASLD or NAFLD data unreliable")
+        df_working = df_reliable.copy()  # Use reliable data for the rest of analysis
 
     # 2. Statistical tests for BOTH FDA approval events
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
@@ -367,16 +396,16 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
     significant_changes_glp1 = {}
 
     # Resmetirom approval impact analysis
-    pre_resmetirom = df_working[df_working.index < resmetirom_date].tail(30)
-    post_resmetirom = df_working[df_working.index > resmetirom_date].head(30)
+    pre_resmetirom = df_reliable[df_reliable.index < resmetirom_date].tail(30)
+    post_resmetirom = df_reliable[df_reliable.index > resmetirom_date].head(30)
 
     # GLP-1 approval impact analysis
-    pre_glp1 = df_working[df_working.index < glp1_date].tail(30)
-    post_glp1 = df_working[df_working.index > glp1_date].head(30)
+    pre_glp1 = df_reliable[df_reliable.index < glp1_date].tail(30)
+    post_glp1 = df_reliable[df_reliable.index > glp1_date].head(30)
 
-    # Terms to test for each event
-    resmetirom_terms = ['MASLD', 'NAFLD', 'Rezdiffra']
-    glp1_terms = ['MASLD', 'NAFLD', 'Wegovy', 'Ozempic']
+    # Terms to test for each event (only reliable terms)
+    resmetirom_terms = [term for term in ['MASLD', 'NAFLD', 'Rezdiffra'] if term in reliable_terms]
+    glp1_terms = [term for term in ['MASLD', 'NAFLD', 'Wegovy', 'Ozempic'] if term in reliable_terms]
 
     # Perform t-tests for Resmetirom approval
     for term in resmetirom_terms:
@@ -541,9 +570,6 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
         plt.savefig(table_path, dpi=300, bbox_inches='tight')
         if not notebook_plot: plt.close()
         print(f"  > Saved statistical table to: {table_path.name}")
-
-    # Gold-standard Interrupted Time Series (ITS) analysis
-    its_results = interrupted_time_series_analysis(df_trends, notebook_plot)
 
     # 4. Gold-standard ITS analysis
     print("\n" + "="*60)
@@ -864,7 +890,7 @@ def analyze_reddit_sentiment(df_reddit: pd.DataFrame, notebook_plot=False):
         print("  > Displayed Reddit sentiment plot in notebook")
 
 
-def validate_statistical_assumptions(df_reddit, event_impacts):
+def validate_reddit_statistical_assumptions(df_reddit, event_impacts):
     """Validate statistical assumptions for Reddit analysis"""
     print("\n" + "=" * 50)
     print("STATISTICAL ASSUMPTION VALIDATION")
@@ -1042,7 +1068,7 @@ def advanced_reddit_sentiment_analysis(df_reddit: pd.DataFrame, notebook_plot=Fa
                 'post_std': post_period['sentiment_score'].std()
             }
     # Statistical Assumption Validation
-    assumption_results = validate_statistical_assumptions(df_reddit, event_impacts)
+    assumption_results = validate_reddit_statistical_assumptions(df_reddit, event_impacts)
 
     # Effect Size Analysis
     calculate_effect_sizes(event_impacts)
