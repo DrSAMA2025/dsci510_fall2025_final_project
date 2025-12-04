@@ -106,6 +106,14 @@ def process_reddit_data(df: pd.DataFrame) -> pd.DataFrame:
     df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
     df = df.dropna(subset=['timestamp'])
 
+    # Filter to study period (2023-01-01 to 2025-10-28)
+    start_date = pd.Timestamp('2023-01-01')
+    end_date = pd.Timestamp('2025-10-28')
+    df = df[(df['timestamp'] >= start_date) & (df['timestamp'] <= end_date)].copy()
+
+    print(f"  > Reddit data filtered to study period. Shape: {df.shape}")
+    print(f"    Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
+
     print(f"  > Reddit data with sentiment ready. Shape: {df.shape}")
     # Keep all columns including text data for later analyses
     return df

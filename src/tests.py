@@ -224,21 +224,33 @@ def test_reddit_data_quality():
         min_date = valid_timestamps.min()
         max_date = valid_timestamps.max()
 
-        # Check start date (should be within study period)
-        assert min_date >= pd.Timestamp(STUDY_START_DATE), f"Data starts before study period: {min_date.date()}"
+        # Check start date - show what will be filtered
+        print(f"\nDate Range Analysis:")
+        print(f"  Raw data range: {min_date.date()} to {max_date.date()}")
 
-        # For end date - allow extension beyond study period (normal for live data)
-        if max_date > pd.Timestamp(STUDY_END_DATE):
-            print(f"WARNING: Data extends beyond study period (normal for live data): {max_date.date()}")
-            print("This is expected behavior for real-time data collection.")
+        # Calculate what WILL be in study period after filtering
+        in_study = df[(df['timestamp'] >= pd.Timestamp(STUDY_START_DATE)) &
+                      (df['timestamp'] <= pd.Timestamp(STUDY_END_DATE))]
+
+        print(f"  Posts in study period: {len(in_study)}/{len(df)} ({len(in_study) / len(df) * 100:.1f}%)")
+
+        if len(in_study) > 100:
+            print("  PASS: Sufficient data for analysis after filtering")
+            print(
+                f"  Date range after filtering: {in_study['timestamp'].min().date()} to {in_study['timestamp'].max().date()}")
+
+            # For end date - allow extension beyond study period (normal for live data)
+            if max_date > pd.Timestamp(STUDY_END_DATE):
+                print(f"  WARNING: Data extends beyond study period: {max_date.date()}")
+                print("          This is normal for real-time data collection.")
             return True
         else:
-            print(f"Date range validation passed: {min_date.date()} to {max_date.date()}")
+            print(f"  FAIL: Only {len(in_study)} posts in study period")
+            return False
 
     except Exception as e:
         print(f"Test 4 FAILED: {e}")
         return False
-
 
 # --- Stock Data Tests ---
 def test_stock_data_integrity():

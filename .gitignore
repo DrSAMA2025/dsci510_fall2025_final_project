@@ -2,7 +2,6 @@
 .env
 src/.env
 kaggle.json
-*.json
 key.txt
 reddit_config.py
 
@@ -14,9 +13,19 @@ anaconda_projects/
 # 3. PYTHON & EDITOR EXCLUSIONS
 __pycache__/
 *.pyc
+.DS_Store
 .idea/
 .vscode/
 
 # 4. NOTEBOOK CHECKPOINTS
 .ipynb_checkpoints/
 .virtual_documents/
+
+# 5. TEMPORARY, LOG, AND DATABASE FILES
+*.log
+*.sqlite3
+*.db
+Thumbs.db
+*.swp
+*.swo
+*~

@@ -231,11 +231,14 @@ jupyter notebook src/results.ipynb
 - **Cross-Platform Correlation**: Reddit discussion volume vs. Google Trends search interest
 - **Methodological rigor**: All analyses include statistical assumption validation, multiple comparison correction, and effect size reporting
 
+### Data Processing Note
+Reddit data collection via Pushshift API included historical posts (some dating to 2011). Our processing pipeline in `process.py` filters all data to the study period (2023-01-01 to 2025-10-28) before analysis. This ensures only temporally relevant data is included in FDA event impact studies.
+
 ### Summary of the Results
 - **Basic EDA insights** revealed pharmacy (1,993 posts), Ozempic (1,872 posts), and MASH (1,089 posts) as the most active subreddits
 - **Text analysis** showed varied post lengths with comprehensive patient discussions averaging substantial content depth
-- **Comprehensive sentiment tracking** across 9,146 Reddit posts showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) with small negative effect size for Resmetirom (Cohen's d = -0.305) and negligible effect for GLP-1 (Cohen's d = -0.012)
-- **Topic modeling revealed 5 key discussion themes**: Personal experiences (43.8%), Drug treatments (32.5%), Liver disease discussions (13.7%), Information seeking (5.0%), and Private discussions (2.5%)
+- **Comprehensive sentiment tracking** across 9,097 Reddit posts (filtered to 2023-2025) showing stable sentiment around FDA approvals (no statistically significant changes, p>0.05) with small negative effect size for Resmetirom (Cohen's d = -0.305) and negligible effect for GLP-1 (Cohen's d = -0.012)
+- **Topic modeling revealed 5 key discussion themes**: Personal experiences (44.0%), Drug treatments (32.7%), Liver disease discussions (13.8%), Information seeking (4.9%), and Private discussions (2.5%)
 - **Temporal patterns identified** peak discussion times at 11:00 AM and Fridays, with significant GLP-1 approval impact (+82.3% discussion increase)
 - **Resmetirom approval impact** showed -30.8% decrease in discussion volume (39 → 27 posts), indicating muted community response to MASLD-specific treatment
 - **Network analysis showed fully connected MASLD community** with all 12 subreddits equally central in a unified discussion ecosystem (density=1.000, single community detected)
