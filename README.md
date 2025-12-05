@@ -83,6 +83,63 @@ REDDIT_USER_AGENT="dsci510_final_project_v1.0"
 
 **Note:** The project includes pre-collected datasets and will automatically use Google Drive fallback if API credentials are not available.
 
+### Data Setup
+**Option A: Automatic Download (Recommended)**
+Run the pipeline once and it will automatically:
+1. Create the `data/` folder
+2. Download pre-collected datasets from Google Drive (if needed)
+3. Proceed with analysis
+
+```bash
+cd src
+python main.py
+```
+**Option B: Manual Download**
+If you prefer manual control:
+1. Download data files from Google Drive:
+   - **Google Trends**: [google_trends_initial_data.csv](https://drive.google.com/file/d/1lrov39Ww1Zp2kJTu4zb1yr3Q2j69H1rX/view?usp=drive_link)
+   - **Stock Data**: [stock_prices.csv](https://drive.google.com/file/d/1hHWJ85BtGBP0aJBkhgr0wjjbPWvWqZYX/view?usp=drive_link)
+   - **Reddit Data**: [reddit_data_*.csv](https://drive.google.com/file/d/1atMK_8axChUJMtzw8e7iv46tEehPTSsK/view?usp=drive_link)
+   - **PubMed Data**: [pubmed_masld_articles_*.csv](https://drive.google.com/file/d/1HyNZl8yxF3U9ooj9reF48MlRHheFTPEt/view?usp=drive_link)
+   - **Media Cloud Data**: [media_cloud_*.csv](https://drive.google.com/file/d/1MfP0OizpCSUrqjZmMLwrCj3vS4KI0KA3/view?usp=drive_link)
+2. Run `python main.py` once - it will create the `data/` folder
+3. Place downloaded files in the `data/` folder
+4. Run the analysis pipeline again
+
+### Basic Execution
+# From project root
+python src/main.py
+
+# Or from src directory
+cd src
+python main.py
+
+### Command Line Parameters
+# Use existing data only (skip API calls)
+python src/main.py --analysis-only
+
+# Skip specific APIs
+python src/main.py --skip-reddit --skip-pubmed
+
+# Quick test run with minimal data
+python src/main.py --quick
+
+# Skip system tests
+python src/main.py --skip-tests
+
+# Skip data loading (use existing data only)
+python src/main.py --skip-load
+
+### Testing
+# Run comprehensive test suite
+python src/tests.py
+
+# Or run tests through main.py
+python src/main.py --skip-load  # Tests will run automatically
+
+### Interactive Analysis
+jupyter notebook src/results.ipynb
+
 ### Data Pipeline
 The project follows this data flow:
 1. **Data Collection** (`load.py`): Fetches data from APIs with Google Drive fallback
@@ -247,7 +304,7 @@ Reddit data collection via Pushshift API included historical posts (some dating 
 
 ### How to Run Reddit Analysis
 
-~~### Data Collection
+### Data Collection
 ```bash
 # Automatic API collection
 python src/load.py          # Fetches Reddit data via Pushshift API
@@ -284,7 +341,7 @@ jupyter notebook src/results.ipynb
 
 ## (3) PubMed Analysis
 
-### PubMed Analysis Components~~
+### PubMed Analysis Components
 - **Publication Trend Analysis**: Monthly publication counts for MASLD research with FDA event tracking
 - **Research Focus Tracking**: Disease-drug combination analysis (MASLD + Resmetirom vs MASLD + GLP-1)
 - **Journal Distribution Analysis**: Top publishing journals and research outlets
