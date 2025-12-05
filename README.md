@@ -107,34 +107,34 @@ If you prefer manual control:
 4. Run the analysis pipeline again
 
 ### Basic Execution
-# From project root
+#### From project root
 python src/main.py
 
-# Or from src directory
+#### Or from src directory
 cd src
 python main.py
 
 ### Command Line Parameters
-# Use existing data only (skip API calls)
+#### Use existing data only (skip API calls)
 python src/main.py --analysis-only
 
-# Skip specific APIs
+#### Skip specific APIs
 python src/main.py --skip-reddit --skip-pubmed
 
-# Quick test run with minimal data
+#### Quick test run with minimal data
 python src/main.py --quick
 
-# Skip system tests
+#### Skip system tests
 python src/main.py --skip-tests
 
-# Skip data loading (use existing data only)
+#### Skip data loading (use existing data only)
 python src/main.py --skip-load
 
 ### Testing
-# Run comprehensive test suite
+#### Run comprehensive test suite
 python src/tests.py
 
-# Or run tests through main.py
+#### Or run tests through main.py
 python src/main.py --skip-load  # Tests will run automatically
 
 ### Interactive Analysis
