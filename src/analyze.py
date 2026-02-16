@@ -155,22 +155,22 @@ def interrupted_time_series_analysis(df_trends: pd.DataFrame, notebook_plot=Fals
 
         # Prepare intervention variables for BOTH FDA events
         resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-        glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+        semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
         # Level change indicators (step functions)
         level_change_resmetirom = (series.index >= resmetirom_date).astype(int)
-        level_change_glp1 = (series.index >= glp1_date).astype(int)
+        level_change_semaglutide = (series.index >= semaglutide_date).astype(int)
 
         # Slope change indicators (ramp functions)
         slope_change_resmetirom = np.maximum(0, (series.index - resmetirom_date).days)
-        slope_change_glp1 = np.maximum(0, (series.index - glp1_date).days)
+        slope_change_semaglutide = np.maximum(0, (series.index - semaglutide_date).days)
 
         # Combine exogenous variables
         exog = pd.DataFrame({
             'level_resmetirom': level_change_resmetirom,
             'slope_resmetirom': slope_change_resmetirom,
-            'level_glp1': level_change_glp1,
-            'slope_glp1': slope_change_glp1
+            'level_semaglutide': level_change_semaglutide,
+            'slope_semaglutide': slope_change_semaglutide
         }, index=series.index)
 
         try:
@@ -192,12 +192,12 @@ def interrupted_time_series_analysis(df_trends: pd.DataFrame, notebook_plot=Fals
                 'pvalues': fitted_model.pvalues,
                 'level_change_resmetirom': fitted_model.params.get('level_resmetirom', 0),
                 'slope_change_resmetirom': fitted_model.params.get('slope_resmetirom', 0),
-                'level_change_glp1': fitted_model.params.get('level_glp1', 0),
-                'slope_change_glp1': fitted_model.params.get('slope_glp1', 0),
+                'level_change_semaglutide': fitted_model.params.get('level_semaglutide', 0),
+                'slope_change_semaglutide': fitted_model.params.get('slope_semaglutide', 0),
                 'level_resmetirom_p': fitted_model.pvalues.get('level_resmetirom', 1),
                 'slope_resmetirom_p': fitted_model.pvalues.get('slope_resmetirom', 1),
-                'level_glp1_p': fitted_model.pvalues.get('level_glp1', 1),
-                'slope_glp1_p': fitted_model.pvalues.get('slope_glp1', 1)
+                'level_semaglutide_p': fitted_model.pvalues.get('level_semaglutide', 1),
+                'slope_semaglutide_p': fitted_model.pvalues.get('slope_semaglutide', 1)
             }
 
             print(
@@ -205,9 +205,9 @@ def interrupted_time_series_analysis(df_trends: pd.DataFrame, notebook_plot=Fals
             print(
                 f"  Slope Change Resmetirom: {results[term]['slope_change_resmetirom']:.3f} (p={results[term]['slope_resmetirom_p']:.4f})")
             print(
-                f"  Level Change GLP-1: {results[term]['level_change_glp1']:.3f} (p={results[term]['level_glp1_p']:.4f})")
+                f"  Level Change Semaglutide: {results[term]['level_change_semaglutide']:.3f} (p={results[term]['level_semaglutide_p']:.4f})")
             print(
-                f"  Slope Change GLP-1: {results[term]['slope_change_glp1']:.3f} (p={results[term]['slope_glp1_p']:.4f})")
+                f"  Slope Change Semaglutide: {results[term]['slope_change_semaglutide']:.3f} (p={results[term]['slope_semaglutide_p']:.4f})")
 
         except Exception as e:
             print(f"  SARIMAX fitting failed for {term}: {e}")
@@ -246,17 +246,17 @@ def create_its_visualization(df_trends, its_results, save_dir, notebook_plot=Fal
 
         # Add FDA event lines
         resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-        glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+        semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
         ax.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, label='Resmetirom FDA')
-        ax.axvline(glp1_date, color='orange', linestyle='--', alpha=0.7, label='GLP-1 FDA')
+        ax.axvline(semaglutide_date, color='orange', linestyle='--', alpha=0.7, label='Semaglutide FDA')
 
         # Add significance annotations
         sig_text = []
         if its_results[term]['level_resmetirom_p'] < 0.05:
             sig_text.append(f"Resmetirom Level: *")
-        if its_results[term]['level_glp1_p'] < 0.05:
-            sig_text.append(f"GLP-1 Level: *")
+        if its_results[term]['level_semaglutide_p'] < 0.05:
+            sig_text.append(f"Semaglutide Level: *")
 
         if sig_text:
             ax.text(0.02, 0.98, '\n'.join(sig_text), transform=ax.transAxes,
@@ -291,11 +291,11 @@ def create_its_summary_table(its_results, save_dir):
             'Level_Resmetirom_Sig': '*' if result['level_resmetirom_p'] < 0.05 else '',
             'Slope_Change_Resmetirom': f"{result['slope_change_resmetirom']:.3f}",
             'Slope_Resmetirom_P': f"{result['slope_resmetirom_p']:.4f}",
-            'Level_Change_GLP1': f"{result['level_change_glp1']:.3f}",
-            'Level_GLP1_P': f"{result['level_glp1_p']:.4f}",
-            'Level_GLP1_Sig': '*' if result['level_glp1_p'] < 0.05 else '',
-            'Slope_Change_GLP1': f"{result['slope_change_glp1']:.3f}",
-            'Slope_GLP1_P': f"{result['slope_glp1_p']:.4f}"
+            'Level_Change_Semaglutide': f"{result['level_change_semaglutide']:.3f}",
+            'Level_Semaglutide_P': f"{result['level_semaglutide_p']:.4f}",
+            'Level_Semaglutide_Sig': '*' if result['level_semaglutide_p'] < 0.05 else '',
+            'Slope_Change_Semaglutide': f"{result['slope_change_semaglutide']:.3f}",
+            'Slope_Semaglutide_P': f"{result['slope_semaglutide_p']:.4f}"
         })
 
     if summary_data:
@@ -389,23 +389,23 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
 
     # 2. Statistical tests for BOTH FDA approval events
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     # Define analysis periods for both events (30 days pre/post each)
     significant_changes_resmetirom = {}
-    significant_changes_glp1 = {}
+    significant_changes_semaglutide = {}
 
     # Resmetirom approval impact analysis
     pre_resmetirom = df_reliable[df_reliable.index < resmetirom_date].tail(30)
     post_resmetirom = df_reliable[df_reliable.index > resmetirom_date].head(30)
 
     # GLP-1 approval impact analysis
-    pre_glp1 = df_reliable[df_reliable.index < glp1_date].tail(30)
-    post_glp1 = df_reliable[df_reliable.index > glp1_date].head(30)
+    pre_semaglutide = df_reliable[df_reliable.index < semaglutide_date].tail(30)
+    post_semaglutide = df_reliable[df_reliable.index > semaglutide_date].head(30)
 
     # Terms to test for each event (only reliable terms)
     resmetirom_terms = [term for term in ['MASLD', 'NAFLD', 'Rezdiffra'] if term in reliable_terms]
-    glp1_terms = [term for term in ['MASLD', 'NAFLD', 'Wegovy', 'Ozempic'] if term in reliable_terms]
+    semaglutide_terms = [term for term in ['MASLD', 'NAFLD', 'Wegovy', 'Ozempic'] if term in reliable_terms]
 
     # Perform t-tests for Resmetirom approval
     for term in resmetirom_terms:
@@ -423,13 +423,13 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
             }
 
     # Perform t-tests for GLP-1 approval
-    for term in glp1_terms:
-        pre_values = pre_glp1[term].dropna()
-        post_values = post_glp1[term].dropna()
+    for term in semaglutide_terms:
+        pre_values = pre_semaglutide[term].dropna()
+        post_values = post_semaglutide[term].dropna()
 
         if len(pre_values) > 5 and len(post_values) > 5:
             t_stat, p_value = stats.ttest_ind(pre_values, post_values, equal_var=False)
-            significant_changes_glp1[term] = {
+            significant_changes_semaglutide[term] = {
                 't_statistic': t_stat,
                 'p_value': p_value,
                 'pre_mean': pre_values.mean(),
@@ -445,7 +445,7 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
     plt.title('Google Search Trends: Impact of Both FDA Approvals', fontsize=14, fontweight='bold')
     plt.ylabel('Relative Search Volume Index (0-100 scale)')
     plt.axvline(resmetirom_date, color='red', linestyle='--', linewidth=2, label='Resmetirom FDA Approval')
-    plt.axvline(glp1_date, color='blue', linestyle='--', linewidth=2, label='GLP-1 FDA Approval')
+    plt.axvline(semaglutide_date, color='blue', linestyle='--', linewidth=2, label='Semaglutide FDA Approval')
     plt.legend(loc='upper left')
     plt.grid(True, alpha=0.3)
 
@@ -454,20 +454,20 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
              rotation=90, verticalalignment='top', horizontalalignment='right',
              fontsize=8, color='red', backgroundcolor='white', alpha=0.8)
 
-    plt.text(glp1_date, plt.ylim()[1] * 0.98, 'GLP-1 FDA Approval',
+    plt.text(semaglutide_date, plt.ylim()[1] * 0.98, 'Semaglutide FDA Approval',
              rotation=90, verticalalignment='top', horizontalalignment='right',
              fontsize=8, color='blue', backgroundcolor='white', alpha=0.8)
 
     # Significance information as regular print statements
     significant_resmetirom = [term for term, stats in significant_changes_resmetirom.items()
                               if stats['p_value'] < 0.05]
-    significant_glp1 = [term for term, stats in significant_changes_glp1.items()
+    significant_semaglutide = [term for term, stats in significant_changes_semaglutide.items()
                         if stats['p_value'] < 0.05]
 
     if significant_resmetirom:
         print(f"Statistically significant changes after Resmetirom approval: {', '.join(significant_resmetirom)}")
-    if significant_glp1:
-        print(f"Statistically significant changes after GLP-1 approval: {', '.join(significant_glp1)}")
+    if significant_semaglutide:
+        print(f"Statistically significant changes after Semaglutide approval: {', '.join(significant_semaglutide)}")
 
     plt.tight_layout()
     timeline_path = save_dir / "advanced_google_trends_timeline.png"
@@ -498,10 +498,10 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
         })
 
     # Add GLP-1 approval impacts
-    for term, stats_data in significant_changes_glp1.items():
+    for term, stats_data in significant_changes_semaglutide.items():
         impact_data.append({
             'Term': term,
-            'Event': 'GLP-1 Approval',
+            'Event': 'Semaglutide Approval',
             'Change_Absolute': stats_data['change_absolute'],
             'P_Value': stats_data['p_value']
         })
@@ -585,7 +585,7 @@ def advanced_google_trends_analysis(df_trends: pd.DataFrame, notebook_plot=False
     return {
         'correlation_matrix': correlation_matrix,
         'resmetirom_impact': significant_changes_resmetirom,
-        'glp1_impact': significant_changes_glp1,
+        'semaglutide_impact': significant_changes_semaglutide,
         'combined_impact_analysis': impact_df,
         'terminology_analysis': terminology_analysis,
         'its_analysis': its_results
@@ -862,8 +862,8 @@ def analyze_reddit_sentiment(df_reddit: pd.DataFrame, notebook_plot=False):
     plt.grid(True, linestyle='--', alpha=0.6)
 
     # Add FDA Approval Lines
-    fda_colors = {'Resmetirom Approval': 'red', 'GLP-1 Agonists Approval': 'purple'}
-    fda_line_styles = {'Resmetirom Approval': '--', 'GLP-1 Agonists Approval': '-.'}
+    fda_colors = {'Resmetirom Approval': 'red', 'Semaglutide Approval': 'purple'}
+    fda_line_styles = {'Resmetirom Approval': '--', 'Semaglutide Approval': '-.'}
 
     for label, date_str in FDA_EVENT_DATES.items():
         color = fda_colors.get(label, 'red')
@@ -1032,13 +1032,13 @@ def advanced_reddit_sentiment_analysis(df_reddit: pd.DataFrame, notebook_plot=Fa
 
     # 3. Statistical tests for FDA event impacts
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     # Define event windows (2 weeks pre/post)
     event_impacts = {}
 
     for event_name, event_date in [('Resmetirom Approval', resmetirom_date),
-                                   ('GLP-1 Approval', glp1_date)]:
+                                   ('Semaglutide Approval', semaglutide_date)]:
 
         pre_period = df_reddit[
             (df_reddit['timestamp'] >= event_date - pd.Timedelta(days=14)) &
@@ -1088,7 +1088,7 @@ def advanced_reddit_sentiment_analysis(df_reddit: pd.DataFrame, notebook_plot=Fa
 
     # Add FDA events
     for event_name, event_date in [('Resmetirom Approval', resmetirom_date),
-                                   ('GLP-1 Approval', glp1_date)]:
+                                   ('Semaglutide Approval', semaglutide_date)]:
         plt.axvline(event_date, color='red', linestyle='--', alpha=0.7)
         plt.text(event_date, plt.ylim()[1] * 0.9, event_name.split()[0],
                  rotation=90, verticalalignment='top', fontsize=9)
@@ -1380,11 +1380,11 @@ def analyze_temporal_patterns(df_reddit, notebook_plot=False):
 
     # 5. FDA event impact on temporal patterns
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     # Activity around FDA events (7 days before/after)
     event_windows = {}
-    for event_name, event_date in [('Resmetirom', resmetirom_date), ('GLP-1', glp1_date)]:
+    for event_name, event_date in [('Resmetirom', resmetirom_date), ('Semaglutide', semaglutide_date)]:
         event_window = df_reddit[
             (df_reddit['timestamp'] >= event_date - pd.Timedelta(days=7)) &
             (df_reddit['timestamp'] <= event_date + pd.Timedelta(days=7))
@@ -1958,7 +1958,7 @@ def create_reddit_summary_table(advanced_reddit_results, temporal_results, topic
             'MASLD Search Correlation (r)',
             'Network Density',
             'Resmetirom Effect Size (Cohen\'s d)',
-            'GLP-1 Discussion Volume Change'
+            'Semaglutide Discussion Volume Change'
         ],
         'Value': [
             f"{advanced_reddit_results['overall_stats']['total_posts']:,}",
@@ -2085,7 +2085,7 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
 
     # 4. FDA event impact analysis - COUNT ONLY DRUG-SPECIFIC PUBLICATIONS
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     # Calculate ALL publications before/after FDA approvals
     pre_resmetirom = len(df_pubmed[
@@ -2098,13 +2098,13 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
                               (df_pubmed['mentions_masld_resmetirom'])
                               ])
 
-    pre_glp1 = len(df_pubmed[
-                       (df_pubmed['publication_date'] < glp1_date) &
+    pre_semaglutide = len(df_pubmed[
+                       (df_pubmed['publication_date'] < semaglutide_date) &
                        (df_pubmed['mentions_masld_glp1'])
                        ])
 
-    post_glp1 = len(df_pubmed[
-                        (df_pubmed['publication_date'] >= glp1_date) &
+    post_semaglutide = len(df_pubmed[
+                        (df_pubmed['publication_date'] >= semaglutide_date) &
                         (df_pubmed['mentions_masld_glp1'])
                         ])
 
@@ -2133,16 +2133,16 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
         resmetirom_p_value = 1.0  # Default for no data
 
     # For GLP-1: Compare publication rates before vs after
-    if pre_glp1 + post_glp1 > 0:
-        contingency_glp1 = [[pre_glp1, post_glp1],
-                            [len(df_pubmed) - pre_glp1, len(df_pubmed) - post_glp1]]
-        glp1_odds_ratio, glp1_p_value = fisher_exact(contingency_glp1)
-        print(f"\nGLP-1 FDA Approval Impact:")
-        print(f"  Before: {pre_glp1} publications, After: {post_glp1} publications")
-        print(f"  Odds Ratio: {glp1_odds_ratio:.3f}, p-value: {glp1_p_value:.4f}")
-        print(f"  Significance: {'*' if glp1_p_value < 0.05 else 'Not significant'}")
+    if pre_semaglutide + post_semaglutide > 0:
+        contingency_semaglutide = [[pre_semaglutide, post_semaglutide],
+                            [len(df_pubmed) - pre_semaglutide, len(df_pubmed) - post_semaglutide]]
+        semaglutide_odds_ratio, semaglutide_p_value = fisher_exact(contingency_semaglutide)
+        print(f"\nSemaglutide FDA Approval Impact:")
+        print(f"  Before: {pre_semaglutide} publications, After: {post_semaglutide} publications")
+        print(f"  Odds Ratio: {semaglutide_odds_ratio:.3f}, p-value: {semaglutide_p_value:.4f}")
+        print(f"  Significance: {'*' if semaglutide_p_value < 0.05 else 'Not significant'}")
     else:
-        print("GLP-1: Insufficient data for statistical testing")
+        print("Semaglutide: Insufficient data for statistical testing")
 
     # CREATE SEPARATE PLOTS
 
@@ -2158,7 +2158,7 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
 
     # Add FDA events
     plt.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, label='Resmetirom Approval')
-    plt.axvline(glp1_date, color='blue', linestyle='--', alpha=0.7, label='GLP-1 Approval')
+    plt.axvline(semaglutide_date, color='blue', linestyle='--', alpha=0.7, label='Semaglutide Approval')
 
     plt.title('PubMed Publication Trends: MASLD Research Evolution', fontweight='bold')
     plt.ylabel('Monthly Publications')
@@ -2210,26 +2210,26 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
     plt.figure(figsize=(10, 6))
     event_data = {
         'Resmetirom': [pre_resmetirom, post_resmetirom],
-        'GLP-1': [pre_glp1, post_glp1]
+        'Semaglutide': [pre_semaglutide, post_semaglutide]
     }
 
     x = np.arange(len(event_data))
     width = 0.35
 
-    plt.bar(x - width / 2, [event_data['Resmetirom'][0], event_data['GLP-1'][0]],
+    plt.bar(x - width / 2, [event_data['Resmetirom'][0], event_data['Semaglutide'][0]],
             width, label='Before Approval', alpha=0.7)
-    plt.bar(x + width / 2, [event_data['Resmetirom'][1], event_data['GLP-1'][1]],
+    plt.bar(x + width / 2, [event_data['Resmetirom'][1], event_data['Semaglutide'][1]],
             width, label='After Approval', alpha=0.7)
 
     # Calculate proper y-limits for asterisk positioning
-    max_value = max(event_data['Resmetirom'] + event_data['GLP-1'])
+    max_value = max(event_data['Resmetirom'] + event_data['Semaglutide'])
     y_margin = max_value * 0.15  # 15% margin for asterisks
 
     # Set y-axis limits to accommodate asterisks within the plot
     plt.ylim(0, max_value + y_margin)
 
     # ADD SIGNIFICANCE ANNOTATIONS WITH PROPER POSITIONING
-    for i, (drug, p_val) in enumerate([('Resmetirom', resmetirom_p_value), ('GLP-1', glp1_p_value)]):
+    for i, (drug, p_val) in enumerate([('Resmetirom', resmetirom_p_value), ('Semaglutide', semaglutide_p_value)]):
         if p_val < 0.05:
             # Position asterisk within the plot boundaries
             bar_height = max(event_data[drug])
@@ -2239,7 +2239,7 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
 
     plt.title('FDA Approval Impact on Publication Volume', fontweight='bold')
     plt.ylabel('Number of Publications')
-    plt.xticks(x, ['Resmetirom', 'GLP-1'])
+    plt.xticks(x, ['Resmetirom', 'Semaglutide'])
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -2262,8 +2262,8 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
             'MASLD + GLP-1 Publications',
             'Resmetirom Pre-Approval',
             'Resmetirom Post-Approval',
-            'GLP-1 Pre-Approval',
-            'GLP-1 Post-Approval',
+            'Semaglutide Pre-Approval',
+            'Semaglutide Post-Approval',
             'Date Range'
         ],
         'Value': [
@@ -2272,8 +2272,8 @@ def advanced_pubmed_analysis(df_pubmed: pd.DataFrame, notebook_plot=False):
             focus_areas['MASLD + GLP-1'],
             pre_resmetirom,
             post_resmetirom,
-            pre_glp1,
-            post_glp1,
+            pre_semaglutide,
+            post_semaglutide,
             f"{df_pubmed['publication_date'].min().strftime('%Y-%m')} to {df_pubmed['publication_date'].max().strftime('%Y-%m')}"
         ]
     }
@@ -2335,10 +2335,10 @@ def analyze_stock_and_events(df_stocks: pd.DataFrame, notebook_plot=False):
 
     # Add FDA approval dates as vertical lines
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     ax1.axvline(resmetirom_date, color='green', linestyle='-', linewidth=2, label='Rezdiffra Approval')
-    ax1.axvline(glp1_date, color='orange', linestyle='-', linewidth=2, label='Wegovy Approval')
+    ax1.axvline(semaglutide_date, color='orange', linestyle='-', linewidth=2, label='Wegovy Approval')
 
     # Combine legends from both axes
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -2371,17 +2371,17 @@ def analyze_stock_and_events(df_stocks: pd.DataFrame, notebook_plot=False):
 
     # GLP-1 (NVO) impact
     try:
-        pre_glp1 = glp1_date - pd.Timedelta(days=5)
-        post_glp1 = glp1_date + pd.Timedelta(days=5)
+        pre_semaglutide = semaglutide_date - pd.Timedelta(days=5)
+        post_semaglutide = semaglutide_date + pd.Timedelta(days=5)
 
-        pre_price_nvo = df_stocks.loc[df_stocks.index <= pre_glp1, 'NVO_Close'].iloc[-1]
-        post_price_nvo = df_stocks.loc[df_stocks.index >= post_glp1, 'NVO_Close'].iloc[0]
+        pre_price_nvo = df_stocks.loc[df_stocks.index <= pre_semaglutide, 'NVO_Close'].iloc[-1]
+        post_price_nvo = df_stocks.loc[df_stocks.index >= post_semaglutide, 'NVO_Close'].iloc[0]
 
         nvo_change = ((post_price_nvo - pre_price_nvo) / pre_price_nvo) * 100
-        print(f"  > NVO Price Change around GLP-1 FDA: {nvo_change:.2f}%")
+        print(f"  > NVO Price Change around Semaglutide FDA: {nvo_change:.2f}%")
 
     except IndexError:
-        print("  > Warning: Could not calculate NVO price change for GLP-1 approval.")
+        print("  > Warning: Could not calculate NVO price change for Semaglutide approval.")
 
 
 def advanced_stock_analysis(df_stocks: pd.DataFrame, notebook_plot=False):
@@ -2393,7 +2393,7 @@ def advanced_stock_analysis(df_stocks: pd.DataFrame, notebook_plot=False):
     # [Keep all the statistical calculation code the same...]
     # 1. FDA event dates
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     # 2. Calculate daily returns
     df_stocks['NVO_Returns'] = df_stocks['NVO_Close'].pct_change() * 100
@@ -2407,11 +2407,11 @@ def advanced_stock_analysis(df_stocks: pd.DataFrame, notebook_plot=False):
             'company': 'Madrigal (MDGL)',
             'event': 'Resmetirom Approval'
         },
-        'GLP1_NVO': {
-            'pre_window': df_stocks[(df_stocks.index < glp1_date)].tail(5)['NVO_Returns'],
-            'post_window': df_stocks[(df_stocks.index >= glp1_date)].head(5)['NVO_Returns'],
+        'Semaglutide_NVO': {
+            'pre_window': df_stocks[(df_stocks.index < semaglutide_date)].tail(5)['NVO_Returns'],
+            'post_window': df_stocks[(df_stocks.index >= semaglutide_date)].head(5)['NVO_Returns'],
             'company': 'Novo Nordisk (NVO)',
-            'event': 'GLP-1 Approval'
+            'event': 'Semaglutide Approval'
         }
     }
 
@@ -2476,12 +2476,12 @@ def advanced_stock_analysis(df_stocks: pd.DataFrame, notebook_plot=False):
     # Plot 2: NVO returns around GLP-1 approval
     plt.figure(figsize=(10, 6))
     nvo_event_data = df_stocks[
-        (df_stocks.index >= glp1_date - pd.Timedelta(days=10)) &
-        (df_stocks.index <= glp1_date + pd.Timedelta(days=10))
+        (df_stocks.index >= semaglutide_date - pd.Timedelta(days=10)) &
+        (df_stocks.index <= semaglutide_date + pd.Timedelta(days=10))
         ]
     plt.plot(nvo_event_data.index, nvo_event_data['NVO_Returns'], marker='o', linewidth=2, color='orange')
-    plt.axvline(glp1_date, color='red', linestyle='--', label='GLP-1 Approval', linewidth=2)
-    plt.title('NVO Daily Returns: GLP-1 FDA Approval Event Window', fontweight='bold')
+    plt.axvline(semaglutide_date, color='red', linestyle='--', label='Semaglutide Approval', linewidth=2)
+    plt.title('NVO Daily Returns: Semaglutide FDA Approval Event Window', fontweight='bold')
     plt.ylabel('Daily Returns (%)')
     plt.xlabel('Date')
     plt.legend()
@@ -2581,7 +2581,7 @@ def advanced_stock_volatility_analysis(df_stocks: pd.DataFrame, notebook_plot=Fa
 
     # 1. FDA event dates
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     # 2. Calculate daily returns (if not already calculated)
     if 'NVO_Returns' not in df_stocks.columns:
@@ -2603,17 +2603,17 @@ def advanced_stock_volatility_analysis(df_stocks: pd.DataFrame, notebook_plot=Fa
             'company': 'Madrigal (MDGL)',
             'event': 'Resmetirom Approval'
         },
-        'GLP1_NVO': {
+        'Semaglutide_NVO': {
             'pre_volatility': df_stocks[
-                (df_stocks.index >= glp1_date - pd.Timedelta(days=20)) &
-                (df_stocks.index < glp1_date)
+                (df_stocks.index >= semaglutide_date - pd.Timedelta(days=20)) &
+                (df_stocks.index < semaglutide_date)
                 ]['NVO_Returns'].std(),
             'post_volatility': df_stocks[
-                (df_stocks.index >= glp1_date) &
-                (df_stocks.index <= glp1_date + pd.Timedelta(days=20))
+                (df_stocks.index >= semaglutide_date) &
+                (df_stocks.index <= semaglutide_date + pd.Timedelta(days=20))
                 ]['NVO_Returns'].std(),
             'company': 'Novo Nordisk (NVO)',
-            'event': 'GLP-1 Approval'
+            'event': 'Semaglutide Approval'
         }
     }
 
@@ -2636,12 +2636,12 @@ def advanced_stock_volatility_analysis(df_stocks: pd.DataFrame, notebook_plot=Fa
                 ]['MDGL_Returns'].dropna()
         else:
             pre_returns = df_stocks[
-                (df_stocks.index >= glp1_date - pd.Timedelta(days=20)) &
-                (df_stocks.index < glp1_date)
+                (df_stocks.index >= semaglutide_date - pd.Timedelta(days=20)) &
+                (df_stocks.index < semaglutide_date)
                 ]['NVO_Returns'].dropna()
             post_returns = df_stocks[
-                (df_stocks.index >= glp1_date) &
-                (df_stocks.index <= glp1_date + pd.Timedelta(days=20))
+                (df_stocks.index >= semaglutide_date) &
+                (df_stocks.index <= semaglutide_date + pd.Timedelta(days=20))
                 ]['NVO_Returns'].dropna()
 
         if len(pre_returns) > 5 and len(post_returns) > 5:
@@ -2708,22 +2708,22 @@ def advanced_stock_volatility_analysis(df_stocks: pd.DataFrame, notebook_plot=Fa
     # Plot 2: NVO volatility around GLP-1 approval
     plt.figure(figsize=(10, 6))
     nvo_vol_data = df_stocks[
-        (df_stocks.index >= glp1_date - pd.Timedelta(days=30)) &
-        (df_stocks.index <= glp1_date + pd.Timedelta(days=30))
+        (df_stocks.index >= semaglutide_date - pd.Timedelta(days=30)) &
+        (df_stocks.index <= semaglutide_date + pd.Timedelta(days=30))
         ]
 
     nvo_vol_data['NVO_Rolling_Vol'] = nvo_vol_data['NVO_Returns'].rolling(window=5).std()
 
     plt.plot(nvo_vol_data.index, nvo_vol_data['NVO_Rolling_Vol'],
              linewidth=2, color='green', label='5-Day Rolling Volatility')
-    plt.axvline(glp1_date, color='red', linestyle='--',
+    plt.axvline(semaglutide_date, color='red', linestyle='--',
                 label='GLP-1 Approval', linewidth=2)
-    plt.axvspan(glp1_date - pd.Timedelta(days=20), glp1_date,
+    plt.axvspan(semaglutide_date - pd.Timedelta(days=20), semaglutide_date,
                 alpha=0.1, color='blue', label='Pre-Event Window')
-    plt.axvspan(glp1_date, glp1_date + pd.Timedelta(days=20),
+    plt.axvspan(semaglutide_date, semaglutide_date + pd.Timedelta(days=20),
                 alpha=0.1, color='orange', label='Post-Event Window')
 
-    plt.title('NVO Volatility: GLP-1 FDA Approval Impact', fontweight='bold')
+    plt.title('NVO Volatility: Semaglutide FDA Approval Impact', fontweight='bold')
     plt.ylabel('Rolling Volatility (5-day, %)')
     plt.xlabel('Date')
     plt.legend()
@@ -3232,7 +3232,7 @@ def advanced_media_cloud_event_analysis(notebook_plot=False):
 
     # FDA event dates
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
 
     results = {}
 
@@ -3249,7 +3249,7 @@ def advanced_media_cloud_event_analysis(notebook_plot=False):
         event_analyses = {}
 
         for event_name, event_date in [('Resmetirom Approval', resmetirom_date),
-                                       ('GLP-1 Approval', glp1_date)]:
+                                       ('Semaglutide Approval', semaglutide_date)]:
 
             # Skip if event is outside data range
             if event_date < df.index.min() or event_date > df.index.max():
@@ -3313,7 +3313,7 @@ def advanced_media_cloud_event_analysis(notebook_plot=False):
 
         # Create bar plot with significance markers
         datasets_ordered = ['disease', 'resmetirom', 'glp1']
-        events_ordered = ['Resmetirom Approval', 'GLP-1 Approval']
+        events_ordered = ['Resmetirom Approval', 'Semaglutide Approval']
 
         x_pos = np.arange(len(datasets_ordered))
         width = 0.35
@@ -3373,7 +3373,7 @@ def advanced_media_cloud_event_analysis(notebook_plot=False):
 
     # Add FDA event lines
     plt.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, linewidth=2, label='Resmetirom Approval')
-    plt.axvline(glp1_date, color='blue', linestyle='--', alpha=0.7, linewidth=2, label='GLP-1 Approval')
+    plt.axvline(semaglutide_date, color='blue', linestyle='--', alpha=0.7, linewidth=2, label='Semaglutide Approval')
     plt.xlabel('Date')
     plt.ylabel('7-Day Moving Average (Articles)')
     plt.title('Media Coverage Trends with FDA Events', fontweight='bold')
@@ -3787,9 +3787,9 @@ def advanced_media_cloud_topic_propagation(notebook_plot=False):
     # Test disease -> drug causality
     test_pairs = [
         ('disease', 'resmetirom', 'Disease awareness drives Resmetirom coverage'),
-        ('disease', 'glp1', 'Disease awareness drives GLP-1 coverage'),
-        ('resmetirom', 'glp1', 'Resmetirom coverage drives GLP-1 coverage'),
-        ('glp1', 'resmetirom', 'GLP-1 coverage drives Resmetirom coverage')
+        ('disease', 'glp1', 'Disease awareness drives Semaglutide coverage'),
+        ('resmetirom', 'glp1', 'Resmetirom coverage drives Semaglutide coverage'),
+        ('glp1', 'resmetirom', 'Semaglutide coverage drives Resmetirom coverage')
     ]
 
     for predictor, target, hypothesis in test_pairs:
@@ -3836,7 +3836,7 @@ def advanced_media_cloud_topic_propagation(notebook_plot=False):
     # Heatmap 1: Disease as predictor
     predictor_data = []
     target_pairs = [('resmetirom', 'Disease -> Resmetirom'),
-                    ('glp1', 'Disease -> GLP-1')]
+                    ('glp1', 'Disease -> Semaglutide')]
 
     for i, (target, title) in enumerate(target_pairs):
         key = f"disease_to_{target}"
@@ -3857,8 +3857,8 @@ def advanced_media_cloud_topic_propagation(notebook_plot=False):
                                 ha='center', va='center', fontweight='bold', color=color)
 
     # Heatmap 2: Cross-drug predictions
-    cross_pairs = [('resmetirom_to_glp1', 'Resmetirom -> GLP-1'),
-                   ('glp1_to_resmetirom', 'GLP-1 -> Resmetirom')]
+    cross_pairs = [('resmetirom_to_glp1', 'Resmetirom -> Semaglutide'),
+                   ('glp1_to_resmetirom', 'Semaglutide -> Resmetirom')]
 
     for i, (key, title) in enumerate(cross_pairs):
         if key in lag_results:
@@ -3903,9 +3903,9 @@ def advanced_media_cloud_topic_propagation(notebook_plot=False):
 
     # Add FDA event lines
     resmetirom_date = pd.to_datetime(FDA_EVENT_DATES['Resmetirom Approval'])
-    glp1_date = pd.to_datetime(FDA_EVENT_DATES['GLP-1 Agonists Approval'])
+    semaglutide_date = pd.to_datetime(FDA_EVENT_DATES['Semaglutide Approval'])
     plt.axvline(resmetirom_date, color='red', linestyle='--', alpha=0.7, label='Resmetirom Approval')
-    plt.axvline(glp1_date, color='blue', linestyle='--', alpha=0.7, label='GLP-1 Approval')
+    plt.axvline(semaglutide_date, color='blue', linestyle='--', alpha=0.7, label='Semaglutide Approval')
 
     # Plot 2: Granger causality results
     plt.subplot(2, 1, 2)

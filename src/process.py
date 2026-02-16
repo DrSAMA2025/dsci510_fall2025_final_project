@@ -106,9 +106,9 @@ def process_reddit_data(df: pd.DataFrame) -> pd.DataFrame:
     df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
     df = df.dropna(subset=['timestamp'])
 
-    # Filter to study period (2023-01-01 to 2025-10-28)
-    start_date = pd.Timestamp('2023-01-01')
-    end_date = pd.Timestamp('2025-10-28')
+    # Filter to study period (2023-01-01 to 2025-12-31)
+    start_date = pd.Timestamp(STUDY_START_DATE)
+    end_date = pd.Timestamp(STUDY_END_DATE)
     df = df[(df['timestamp'] >= start_date) & (df['timestamp'] <= end_date)].copy()
 
     print(f"  > Reddit data filtered to study period. Shape: {df.shape}")
@@ -134,8 +134,14 @@ def process_pubmed_data(df: pd.DataFrame) -> pd.DataFrame:
     df['month_num'] = df['publication_month'].str.lower().str[:3].map(month_map)
 
     # Create publication date
+    # Convert year from float to int to string (removes .0)
+    df['publication_year'] = df['publication_year'].fillna(0).astype(int).astype(str)
+
+    # Replace '0' with 'N/A' for missing years
+    df.loc[df['publication_year'] == '0', 'publication_year'] = 'N/A'
+
     df['publication_date'] = pd.to_datetime(
-        df['publication_year'].astype(str) + '-' + df['month_num'] + '-01',
+        df['publication_year'] + '-' + df['month_num'] + '-01',
         format='%Y-%m-%d',
         errors='coerce'
     )

@@ -1,5 +1,5 @@
 # MASLD Awareness Tracker
-*Evaluating the Impact of FDA Approvals of Resmetirom and GLP-1 Agonists on Public Awareness of Metabolic Dysfunction-Associated Stearotic Liver Disease*
+*Evaluating the Impact of FDA Approvals of Resmetirom and Semaglutide on Public Awareness of Metabolic Dysfunction-Associated Stearotic Liver Disease*
 
 ## Data Sources
 
@@ -196,7 +196,7 @@ This test suite validates API connections, data quality, and Google Drive fallba
 ## (1) Google Trends Analysis
 ### Google Trends Analysis
 - **Search Interest Tracking**: Weekly relative search volume for MASLD, NAFLD, Rezdiffra, Wegovy, and Ozempic (2023-2025)
-- **FDA Event Impact Analysis**: Statistical testing of search behavior changes around Resmetirom and GLP-1 approval dates
+- **FDA Event Impact Analysis**: Statistical testing of search behavior changes around Resmetirom and Semaglutide approval dates
 - **Terminology Transition Monitoring**: MASLD/NAFLD ratio analysis to track disease nomenclature adoption
 - **Correlation Analysis**: Relationship mapping between disease awareness and drug search interest
 - **Statistical Significance Testing**: T-tests with p-values to validate observed changes in search patterns
@@ -204,7 +204,7 @@ This test suite validates API connections, data quality, and Google Drive fallba
 
 ### Summary of the Results
 - **Comprehensive search interest tracking** for MASLD, NAFLD, Rezdiffra, Wegovy, and Ozempic across 148 weeks (2023-2025)
-- **Basic time series visualization** showing search trends with FDA approval event markers for both Resmetirom and GLP-1 agonists
+- **Basic time series visualization** showing search trends with FDA approval event markers for both Resmetirom and Semaglutide
 - **Data Quality Validation**: MASLD showed reliable search volume (16.9% zeros), while Rezdiffra was excluded from statistical analysis due to insufficient search volume (66.9% zeros)
 - **Data quality insights** showing Rezdiffra had minimal search volume (67% zeros, mean=0.3) compared to established terms
 - **Advanced statistical analysis** revealing significant increases after GLP-1 approvals: MASLD (+14.4 points, p=0.000), NAFLD (+31.5 points, p=0.001), and Wegovy (+21.8 points, p=0.000)

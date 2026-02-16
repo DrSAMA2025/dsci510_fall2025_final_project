@@ -61,7 +61,7 @@ MEDIA_CLOUD_DATASETS = {
 # ==============================================================================
 FDA_EVENT_DATES = {
     'Resmetirom Approval': '2024-03-14',
-    'GLP-1 Agonists Approval': '2025-08-15'
+    'Semaglutide Approval': '2025-08-15'
 }
 
 # PubMed-specific date constants (for backward compatibility)
@@ -74,12 +74,12 @@ SEMAGLUTIDE_APPROVAL_DATE = '2025-08'
 
 # Google Trends parameters
 GOOGLE_TRENDS_KEYWORDS = ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic']
-GOOGLE_TRENDS_TIMEFRAME = '2023-01-01 2025-10-28'
+GOOGLE_TRENDS_TIMEFRAME = '2023-01-01 2025-12-31'
 
 # Google Trends analysis parameters (regardless of timeframe)
 GOOGLE_TRENDS_ANALYSIS = {
     'keywords': ['MASLD', 'NAFLD', 'Rezdiffra', 'Wegovy', 'Ozempic'],
-    'timeframe': '2023-01-01 2025-10-28',
+    'timeframe': '2023-01-01 2025-12-31',
     'validation': {
         'required_non_zero_points': 10,  # MASLD had 13 non-zero points
         'value_range': (0, 100),
@@ -127,7 +127,7 @@ REDDIT_SUBREDDIT_CONFIG = [
 
 # Study timeframe (consistent across all data sources)
 STUDY_START_DATE = datetime(2023, 1, 1)
-STUDY_END_DATE = datetime(2025, 10, 28)
+STUDY_END_DATE = datetime(2025, 12, 31)
 
 # ==============================================================================
 # 6. VISUALIZATION SETTINGS
